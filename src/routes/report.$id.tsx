@@ -1,0 +1,128 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { ArrowLeft, ScanLine, Loader2, History } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ReportView } from "@/components/report/ReportView";
+import { getScan, signedImageUrl, updateScanFields } from "@/lib/scans";
+import { estimateOcrQuality, type FieldResult, type Verdict } from "@/lib/compliance";
+
+export const Route = createFileRoute("/report/$id")({
+  head: () => ({
+    meta: [
+      { title: "Compliance report — LabelCheck" },
+      {
+        name: "description",
+        content:
+          "Per-field Legal Metrology compliance report with extracted values, confidence scores and statutory citations.",
+      },
+      { property: "og:title", content: "Compliance report — LabelCheck" },
+      {
+        property: "og:description",
+        content: "Rule 6 verdict with per-declaration confidence scoring and legal citations.",
+      },
+    ],
+  }),
+  component: ReportPage,
+});
+
+function ReportPage() {
+  const { id } = Route.useParams();
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["scan", id],
+    queryFn: () => getScan(id),
+  });
+
+  useEffect(() => {
+    if (data?.image_url) void signedImageUrl(data.image_url).then(setImageUrl);
+  }, [data?.image_url]);
+
+  async function persist(fields: FieldResult[], verdict: Verdict) {
+    try {
+      await updateScanFields(id, fields, verdict);
+      toast.success("Correction saved — verdict updated.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save the correction.");
+    }
+  }
+
+  if (isPending) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-bold">Report not found</h1>
+        <p className="mt-2 text-muted-foreground">
+          This inspection no longer exists or the link is incorrect.
+        </p>
+        <Button asChild className="mt-6">
+          <Link to="/scan">Scan a label</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/scan">
+              <ArrowLeft className="size-4" /> Back
+            </Link>
+          </Button>
+          <Badge variant="secondary" className="rounded-full">
+            {data.source === "demo" ? "Demo label" : "Field scan"}
+          </Badge>
+          <Badge variant="outline" className="rounded-full">
+            {data.language === "hin" ? "हिन्दी" : "English"}
+          </Badge>
+          <span className="text-xs text-muted-foreground">
+            {new Date(data.created_at).toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <h1 className="mt-4 text-4xl sm:text-4xl">
+          {data.product_name || "Compliance report"}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Verified against Rule 6 of the Legal Metrology (Packaged Commodities) Rules, 2011.
+        </p>
+      </motion.div>
+
+      <div className="mt-10">
+        <ReportView
+          fields={data.field_results}
+          rawText={data.extracted_text}
+          imageUrl={imageUrl}
+          ocrQuality={estimateOcrQuality(data.extracted_text)}
+          onFieldsChange={persist}
+        />
+      </div>
+
+      <div className="mt-10 flex flex-wrap gap-3">
+        <Button asChild size="lg" className="h-12 px-6">
+          <Link to="/scan">
+            <ScanLine className="size-5" /> Scan another
+          </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="h-12 px-6">
+          <Link to="/history">
+            <History className="size-5" /> View history
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}

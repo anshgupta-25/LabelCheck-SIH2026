@@ -1,0 +1,2 @@
+CREATE POLICY "Anyone can upload label images" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'label-images');
+CREATE POLICY "Anyone can read label images" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'label-images');
