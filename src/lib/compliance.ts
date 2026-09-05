@@ -167,6 +167,71 @@ function isPlausibleDate(value: string | null): boolean {
   return false;
 }
 
+/**
+ * Countries that realistically appear on Indian retail packaging. Used to keep
+ * "Made in small batches" or "Made in a facility that…" from being mistaken for
+ * a country-of-origin declaration.
+ */
+const COUNTRY_WORDS = new Set(
+  [
+    "india",
+    "china",
+    "nepal",
+    "bhutan",
+    "bangladesh",
+    "sri lanka",
+    "pakistan",
+    "thailand",
+    "vietnam",
+    "indonesia",
+    "malaysia",
+    "singapore",
+    "philippines",
+    "japan",
+    "korea",
+    "taiwan",
+    "uae",
+    "united arab emirates",
+    "saudi arabia",
+    "usa",
+    "united states",
+    "america",
+    "uk",
+    "united kingdom",
+    "england",
+    "germany",
+    "france",
+    "italy",
+    "spain",
+    "netherlands",
+    "belgium",
+    "poland",
+    "switzerland",
+    "sweden",
+    "denmark",
+    "turkey",
+    "russia",
+    "australia",
+    "new zealand",
+    "canada",
+    "mexico",
+    "brazil",
+    "egypt",
+    "kenya",
+    "nigeria",
+    "south africa",
+  ].map((c) => c),
+);
+
+/** True when the words after "Made in" look like a country rather than prose. */
+function looksLikeCountry(raw: string): boolean {
+  const value = raw.trim().replace(/[.,;].*$/, "");
+  if (COUNTRY_WORDS.has(value.toLowerCase())) return true;
+  // Otherwise accept a capitalised proper noun ("MADE IN INDIA", "Made in Nepal")
+  // but never lower-case prose ("made in small batches").
+  return /^[A-Z][A-Za-z]{2,}(?: [A-Z][A-Za-z]+)?$/.test(value);
+}
+
 /* ------------------------------------------------------------------ */
 /* Rule definitions — Rule 6(1)(a) … 6(1)(g)                           */
 /* ------------------------------------------------------------------ */
@@ -432,20 +497,33 @@ export const RULES: RuleDefinition[] = [
     violation:
       "Rule 6(1)(g): Country of origin is not declared. This is mandatory for imported packages and for e-commerce listings.",
     critical: false,
-    detect: (text) =>
-      firstMatch(text, [
+    detect: (text) => {
+      const explicit = firstMatch(text, [
         {
           re: /country\s*of\s*(?:origin|manufacture|assembly)\s*[:\-]?\s*[A-Za-z\u0900-\u097F ]{3,30}/i,
           strength: 0.99,
           name: "explicit country of origin declaration",
         },
-        {
-          re: /\b(?:made|manufactured|product)\s+(?:in|of)\s+[A-Z][A-Za-z]{2,20}/,
-          strength: 0.88,
-          name: "'Made in …' declaration",
-        },
-        { re: /\bभारत में निर्मित\b/, strength: 0.9, name: "Hindi 'Made in India' declaration" },
-      ]),
+        { re: /भारत\s*में\s*निर्मित/, strength: 0.9, name: "Hindi 'Made in India' declaration" },
+      ]);
+      if (explicit.found) return explicit;
+
+      // "MADE IN INDIA" is printed in capitals on a large share of Indian packs,
+      // so this must be case-insensitive; the country check keeps prose out.
+      for (const m of text.matchAll(
+        /\b(?:made|manufactured|packed|produced|product)\s+(?:in|of)\s+([A-Za-z][A-Za-z ]{2,24})/gi,
+      )) {
+        const country = (m[1] || "").trim().replace(/[.,;].*$/, "");
+        if (!looksLikeCountry(country)) continue;
+        return {
+          found: true,
+          value: (m[0] || "").trim().replace(/\s+/g, " ").slice(0, 160),
+          strength: COUNTRY_WORDS.has(country.toLowerCase()) ? 0.9 : 0.8,
+          matchedBy: "'Made in …' declaration",
+        };
+      }
+      return invalid();
+    },
   },
 ];
 
