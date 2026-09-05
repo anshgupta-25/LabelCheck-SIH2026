@@ -25,7 +25,12 @@ function createSupabaseClient() {
   }
 
   return createClient<Database>(url, key, {
-    auth: { persistSession: true, autoRefreshToken: true },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: "pkce",
+    },
   });
 }
 

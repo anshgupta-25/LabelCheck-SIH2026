@@ -16,6 +16,7 @@ export type Database = {
           id: string;
           image_url: string | null;
           language: string;
+          owner_id: string | null;
           product_name: string | null;
           source: string;
           verdict: string;
@@ -27,6 +28,7 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           language?: string;
+          owner_id?: string | null;
           product_name?: string | null;
           source?: string;
           verdict?: string;
@@ -38,6 +40,7 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           language?: string;
+          owner_id?: string | null;
           product_name?: string | null;
           source?: string;
           verdict?: string;

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReportView } from "@/components/report/ReportView";
 import { getScan, signedImageUrl, updateScanFields } from "@/lib/scans";
 import { downloadReportPdf } from "@/lib/report-pdf";
+import { useAuth } from "@/lib/auth";
 import {
   estimateOcrQuality,
   finaliseReport,
@@ -41,6 +42,7 @@ function ReportPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { user } = useAuth();
 
   const { data, isPending, error } = useQuery({
     queryKey: ["scan", id],
@@ -111,6 +113,8 @@ function ReportPage() {
     );
   }
 
+  const canEdit = !!user && data?.owner_id === user.id;
+
   if (error || !data) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -143,6 +147,11 @@ function ReportPage() {
           <span className="text-xs text-muted-foreground">
             {new Date(data.created_at).toLocaleString("en-IN")}
           </span>
+          {!canEdit && (
+            <Badge variant="outline" className="rounded-full text-muted-foreground">
+              Shared view · read-only
+            </Badge>
+          )}
         </div>
 
         <h1 className="mt-4 text-4xl sm:text-4xl">{data.product_name || "Compliance report"}</h1>
@@ -173,6 +182,7 @@ function ReportPage() {
           imageUrl={imageUrl}
           ocrQuality={estimateOcrQuality(data.extracted_text)}
           onFieldsChange={persist}
+          readOnly={!canEdit}
         />
       </div>
 

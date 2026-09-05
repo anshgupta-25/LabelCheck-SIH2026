@@ -31,6 +31,7 @@ import { analyseLabel } from "@/lib/compliance";
 import { DEMO_LABELS, getDemoLabel } from "@/lib/demo-labels";
 import { createScan, uploadLabelImage } from "@/lib/scans";
 import { extractLabelText } from "@/lib/ocr.functions";
+import { RequireAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/scan")({
@@ -52,7 +53,11 @@ export const Route = createFileRoute("/scan")({
       },
     ],
   }),
-  component: ScanPage,
+  component: () => (
+    <RequireAuth>
+      <ScanPage />
+    </RequireAuth>
+  ),
 });
 
 const STAGES = [

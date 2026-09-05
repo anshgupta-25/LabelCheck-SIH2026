@@ -391,8 +391,8 @@ function Home() {
               Check your first label now
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
-              No sign-up, no setup. Upload one photo, a batch of eight, or run a built-in demo
-              label.
+              Sign in with Google or e-mail, then upload one photo, a batch of eight, or run a
+              built-in demo label.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" variant="secondary" className="h-12 px-6">

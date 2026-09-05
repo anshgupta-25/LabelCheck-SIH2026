@@ -31,9 +31,18 @@ interface Props {
   imageUrl?: string | null;
   ocrQuality?: number;
   onFieldsChange?: (fields: FieldResult[], verdict: "compliant" | "non_compliant") => void;
+  /** Hide the correction controls (viewer is not the report owner). */
+  readOnly?: boolean;
 }
 
-export function ReportView({ fields, rawText, imageUrl, ocrQuality = 0.8, onFieldsChange }: Props) {
+export function ReportView({
+  fields,
+  rawText,
+  imageUrl,
+  ocrQuality = 0.8,
+  onFieldsChange,
+  readOnly = false,
+}: Props) {
   const [current, setCurrent] = useState<FieldResult[]>(() => normaliseFields(fields));
   const report = useMemo(() => finaliseReport(current, ocrQuality), [current, ocrQuality]);
   const compliant = report.verdict === "compliant";
@@ -93,7 +102,13 @@ export function ReportView({ fields, rawText, imageUrl, ocrQuality = 0.8, onFiel
           <div className="space-y-3">
             <h2 className="font-display text-lg font-bold">Mandatory declarations — Rule 6</h2>
             {current.map((field, i) => (
-              <FieldCard key={field.key} field={field} index={i} onSave={update} />
+              <FieldCard
+                key={field.key}
+                field={field}
+                index={i}
+                onSave={update}
+                readOnly={readOnly}
+              />
             ))}
 
             {/* Raw OCR audit panel */}
@@ -160,10 +175,12 @@ function FieldCard({
   field,
   index,
   onSave,
+  readOnly,
 }: {
   field: FieldResult;
   index: number;
   onSave: (key: RuleKey, value: string) => void;
+  readOnly: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(field.value ?? "");
@@ -292,7 +309,7 @@ function FieldCard({
           </div>
         </div>
 
-        {!editing && (
+        {!editing && !readOnly && (
           <button
             type="button"
             onClick={() => setEditing(true)}

@@ -13,8 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BatchRouteImport } from './routes/batch'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PitchRouteImport } from './routes/pitch'
 import { Route as ScanRouteImport } from './routes/scan'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ReportIdRouteImport } from './routes/report.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -37,6 +40,11 @@ const HowItWorksRoute = HowItWorksRouteImport.update({
   path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PitchRoute = PitchRouteImport.update({
   id: '/pitch',
   path: '/pitch',
@@ -45,6 +53,16 @@ const PitchRoute = PitchRouteImport.update({
 const ScanRoute = ScanRouteImport.update({
   id: '/scan',
   path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportIdRoute = ReportIdRouteImport.update({
@@ -58,8 +76,11 @@ export interface FileRoutesByFullPath {
   '/batch': typeof BatchRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
   '/scan': typeof ScanRoute
+  '/signup': typeof SignupRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/report/$id': typeof ReportIdRoute
 }
 export interface FileRoutesByTo {
@@ -67,8 +88,11 @@ export interface FileRoutesByTo {
   '/batch': typeof BatchRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
   '/scan': typeof ScanRoute
+  '/signup': typeof SignupRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/report/$id': typeof ReportIdRoute
 }
 export interface FileRoutesById {
@@ -77,8 +101,11 @@ export interface FileRoutesById {
   '/batch': typeof BatchRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
   '/scan': typeof ScanRoute
+  '/signup': typeof SignupRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/report/$id': typeof ReportIdRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +115,11 @@ export interface FileRouteTypes {
     | '/batch'
     | '/history'
     | '/how-it-works'
+    | '/login'
     | '/pitch'
     | '/scan'
+    | '/signup'
+    | '/auth/callback'
     | '/report/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,8 +127,11 @@ export interface FileRouteTypes {
     | '/batch'
     | '/history'
     | '/how-it-works'
+    | '/login'
     | '/pitch'
     | '/scan'
+    | '/signup'
+    | '/auth/callback'
     | '/report/$id'
   id:
     | '__root__'
@@ -106,8 +139,11 @@ export interface FileRouteTypes {
     | '/batch'
     | '/history'
     | '/how-it-works'
+    | '/login'
     | '/pitch'
     | '/scan'
+    | '/signup'
+    | '/auth/callback'
     | '/report/$id'
   fileRoutesById: FileRoutesById
 }
@@ -116,8 +152,11 @@ export interface RootRouteChildren {
   BatchRoute: typeof BatchRoute
   HistoryRoute: typeof HistoryRoute
   HowItWorksRoute: typeof HowItWorksRoute
+  LoginRoute: typeof LoginRoute
   PitchRoute: typeof PitchRoute
   ScanRoute: typeof ScanRoute
+  SignupRoute: typeof SignupRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   ReportIdRoute: typeof ReportIdRoute
 }
 
@@ -151,6 +190,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pitch': {
       id: '/pitch'
       path: '/pitch'
@@ -163,6 +209,20 @@ declare module '@tanstack/react-router' {
       path: '/scan'
       fullPath: '/scan'
       preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/report/$id': {
@@ -180,8 +240,11 @@ const rootRouteChildren: RootRouteChildren = {
   BatchRoute: BatchRoute,
   HistoryRoute: HistoryRoute,
   HowItWorksRoute: HowItWorksRoute,
+  LoginRoute: LoginRoute,
   PitchRoute: PitchRoute,
   ScanRoute: ScanRoute,
+  SignupRoute: SignupRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   ReportIdRoute: ReportIdRoute,
 }
 export const routeTree = rootRouteImport

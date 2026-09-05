@@ -12,6 +12,8 @@ export interface ScanRow {
   product_name: string | null;
   source: string;
   field_results: FieldResult[];
+  /** auth.users id of the inspector who created it; null for legacy rows. */
+  owner_id: string | null;
 }
 
 const BUCKET = "label-images";
@@ -73,10 +75,12 @@ export async function getScan(id: string): Promise<ScanRow | null> {
   return (data as unknown as ScanRow) ?? null;
 }
 
-export async function listScans(): Promise<ScanRow[]> {
+/** The signed-in inspector's own scans, newest first. */
+export async function listScans(ownerId: string): Promise<ScanRow[]> {
   const { data, error } = await supabase
     .from("scans")
     .select("*")
+    .eq("owner_id", ownerId)
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw new Error(error.message);

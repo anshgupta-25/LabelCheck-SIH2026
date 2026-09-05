@@ -82,3 +82,24 @@ Any other Nitro target works by setting `NITRO_PRESET` (e.g. `node-server`,
 | Report images 404 | Signed URL expired — reload the report |
 | `Deploy directory 'dist/client' does not exist` | Publish directory must be `dist` |
 | Build fails on Node 24 | Use Node 22 (`.nvmrc`) or set `NODE_VERSION=22.14.0` |
+
+## 8. Authentication (Supabase Auth)
+
+Scanning and History require a signed-in user; report links stay public so
+QR codes and share links work for anyone. Users sign in with e-mail/password
+or Google. Configure once in the Supabase dashboard → **Authentication**:
+
+1. **URL configuration** → Site URL `https://sih.anshguptaa.in`; add redirect
+   URLs `https://sih.anshguptaa.in/**`, `https://*.vercel.app/**` and
+   `http://localhost:8080/**`. The app returns users to `/auth/callback`.
+2. **Providers → Email** → for a live demo, turn **Confirm email** off so new
+   accounts work instantly. Leave it on in production; the signup page then
+   shows a "check your inbox" step.
+3. **Providers → Google** → enable, paste the OAuth client ID and secret from
+   Google Cloud Console (Credentials → OAuth 2.0 Client ID, type *Web
+   application*). In Google Cloud, add the authorised redirect URI shown by
+   Supabase (`https://<project-ref>.supabase.co/auth/v1/callback`).
+
+Ownership is enforced in the database (`owner_id` on `scans`, owner-only
+insert/update/delete policies), so a user can only ever list, correct or delete
+their own inspections.

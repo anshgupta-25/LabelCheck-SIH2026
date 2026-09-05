@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { listScans } from "@/lib/scans";
+import { RequireAuth, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/history")({
@@ -31,10 +32,23 @@ export const Route = createFileRoute("/history")({
 type Filter = "all" | "compliant" | "non_compliant";
 
 function HistoryPage() {
+  return (
+    <RequireAuth>
+      <HistoryContent />
+    </RequireAuth>
+  );
+}
+
+function HistoryContent() {
+  const { user } = useAuth();
+  const ownerId = user!.id;
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
 
-  const { data, isPending } = useQuery({ queryKey: ["scans"], queryFn: listScans });
+  const { data, isPending } = useQuery({
+    queryKey: ["scans", ownerId],
+    queryFn: () => listScans(ownerId),
+  });
 
   const rows = useMemo(() => {
     const all = data ?? [];
@@ -78,8 +92,8 @@ function HistoryPage() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-4xl sm:text-4xl">Inspection history</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Every scan is logged with its verdict and full per-field result set — the audit trail an
-          enforcement authority needs to track compliance at scale.
+          Every scan you run is logged under your account with its verdict and full per-field result
+          set — the audit trail an enforcement authority needs.
         </p>
       </motion.div>
 
