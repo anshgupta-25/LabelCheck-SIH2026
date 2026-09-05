@@ -141,7 +141,7 @@ function SlideSolution() {
     {
       icon: FileCheck2,
       t: "Compliance Report",
-      d: "Missing fields flagged with the exact rule cited.",
+      d: "Missing fields flagged with the exact rule cited, exportable as a PDF.",
     },
   ];
   return (
@@ -167,9 +167,13 @@ function SlideSolution() {
       <div className="mt-5 grid gap-2 sm:grid-cols-4">
         {[
           { icon: Gauge, t: "Per-field confidence" },
-          { icon: PencilLine, t: "Editable OCR text" },
-          { icon: Languages, t: "Multilingual labels" },
-          { icon: Layers, t: "Batch scanning" },
+          { icon: PencilLine, t: "Inspector corrections" },
+          { icon: Languages, t: "English + Hindi labels" },
+          { icon: Layers, t: "Batch of 8 labels" },
+          { icon: FileCheck2, t: "Cited PDF report" },
+          { icon: ShieldCheck, t: "Share link + QR code" },
+          { icon: Users, t: "Per-officer audit trail" },
+          { icon: Database, t: "Searchable history" },
         ].map((x) => (
           <div
             key={x.t}
@@ -264,7 +268,8 @@ function SlideFeasibility() {
           <p className="mt-2 font-semibold">The innovation</p>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             First tool to combine OCR, a codified Legal Metrology rule engine and an
-            officer-friendly verification workflow — transparent and auditable end to end.
+            officer-friendly workflow: batch checks, cited PDF evidence, QR-linked share links and a
+            per-officer audit trail — transparent end to end.
           </p>
         </Card>
       </div>

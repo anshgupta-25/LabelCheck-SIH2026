@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { analyseLabel } from "@/lib/compliance";
-import { DEMO_LABELS, getDemoLabel } from "@/lib/demo-labels";
+import { DEMO_LABELS, getDemoLabel, demoReportId } from "@/lib/demo-labels";
 import { createScan, uploadLabelImage } from "@/lib/scans";
 import { extractLabelText } from "@/lib/ocr.functions";
 import { RequireAuth } from "@/lib/auth";
@@ -157,30 +157,17 @@ function ScanPage() {
     async (id: string) => {
       const label = getDemoLabel(id);
       if (!label) return;
+      // Demo Mode is fully deterministic and entirely local: fixed
+      // transcription, fixed fields, fixed verdict. No OCR, no upload, no
+      // database — so it still works on a dead venue network.
       setBusy(true);
       setStage(1);
-      try {
-        await new Promise((r) => setTimeout(r, 500));
-        setStage(2);
-        await new Promise((r) => setTimeout(r, 400));
-        setStage(3);
-        // Demo Mode is fully deterministic: fixed transcription, fixed fields,
-        // fixed verdict. No OCR call; only the report row is saved.
-        const scanId = await createScan({
-          imagePath: label.image,
-          extractedText: label.text,
-          language: "eng",
-          verdict: label.verdict,
-          productName: label.productName,
-          source: "demo",
-          fields: label.fields,
-        });
-        await navigate({ to: "/report/$id", params: { id: scanId } });
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Demo scan failed.");
-        setBusy(false);
-        setStage(0);
-      }
+      await new Promise((r) => setTimeout(r, 450));
+      setStage(2);
+      await new Promise((r) => setTimeout(r, 400));
+      setStage(3);
+      await new Promise((r) => setTimeout(r, 250));
+      await navigate({ to: "/report/$id", params: { id: demoReportId(label.id) } });
     },
     [navigate],
   );

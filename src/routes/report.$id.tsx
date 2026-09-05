@@ -23,6 +23,7 @@ import { getScan, signedImageUrl, updateScanFields } from "@/lib/scans";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { useAuth } from "@/lib/auth";
 import { emailReport } from "@/lib/email.functions";
+import { demoScanRow } from "@/lib/demo-labels";
 import {
   estimateOcrQuality,
   finaliseReport,
@@ -61,14 +62,31 @@ function ReportPage() {
   const [mailNote, setMailNote] = useState("");
   const [mailing, setMailing] = useState(false);
 
-  const { data, isPending, error } = useQuery({
+  // Demo reports are built in the browser from hardcoded fixtures: no account,
+  // no network, no database. That is what keeps the stage demo safe.
+  const demo = demoScanRow(id);
+
+  const {
+    data: fetched,
+    isPending,
+    error,
+  } = useQuery({
     queryKey: ["scan", id],
     queryFn: () => getScan(id),
+    enabled: !demo,
   });
 
+  const data = demo ?? fetched;
+
   useEffect(() => {
-    if (data?.image_url) void signedImageUrl(data.image_url).then(setImageUrl);
-  }, [data?.image_url]);
+    if (!data?.image_url) return;
+    // Demo images are bundled assets; real ones need a short-lived signed URL.
+    if (demo) {
+      setImageUrl(data.image_url);
+      return;
+    }
+    void signedImageUrl(data.image_url).then(setImageUrl);
+  }, [data?.image_url, demo]);
 
   async function persist(fields: FieldResult[], verdict: Verdict) {
     try {
@@ -147,7 +165,7 @@ function ReportPage() {
     }
   }
 
-  if (isPending) {
+  if (!demo && isPending) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-primary" />
@@ -155,7 +173,11 @@ function ReportPage() {
     );
   }
 
-  const canEdit = !!user && data?.owner_id === user.id;
+  // Corrections are local-only on a demo, so the "human in the loop" beat
+  // still works for a signed-out visitor.
+  const isDemo = !!demo;
+  const canEdit = isDemo || (!!user && data?.owner_id === user.id);
+  const canEmail = !isDemo && !!user && data?.owner_id === user.id;
 
   if (error || !data) {
     return (
@@ -189,6 +211,11 @@ function ReportPage() {
           <span className="text-xs text-muted-foreground">
             {new Date(data.created_at).toLocaleString("en-IN")}
           </span>
+          {isDemo && (
+            <Badge variant="outline" className="rounded-full border-accent/40 text-accent">
+              Sample report · edits are not saved
+            </Badge>
+          )}
           {!canEdit && (
             <Badge variant="outline" className="rounded-full text-muted-foreground">
               Shared view · read-only
@@ -214,7 +241,7 @@ function ReportPage() {
             {copied ? <Check className="size-4" /> : <Link2 className="size-4" />}
             {copied ? "Link copied" : "Copy share link"}
           </Button>
-          {canEdit && (
+          {canEmail && (
             <Button
               onClick={() => setMailOpen((v) => !v)}
               variant="outline"
@@ -227,7 +254,7 @@ function ReportPage() {
           )}
         </div>
 
-        {canEdit && mailOpen && (
+        {canEmail && mailOpen && (
           <motion.form
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -268,7 +295,7 @@ function ReportPage() {
           rawText={data.extracted_text}
           imageUrl={imageUrl}
           ocrQuality={estimateOcrQuality(data.extracted_text)}
-          onFieldsChange={persist}
+          onFieldsChange={isDemo ? undefined : persist}
           readOnly={!canEdit}
         />
       </div>

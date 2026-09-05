@@ -7,6 +7,7 @@
  */
 
 import { RULES, type FieldResult, type RuleKey, type Verdict } from "./compliance";
+import type { ScanRow } from "./scans";
 import compliantImage from "@/assets/demo-label-compliant.jpg";
 import nonCompliantImage from "@/assets/demo-label-non-compliant.jpg";
 
@@ -163,4 +164,40 @@ export const DEMO_LABELS: DemoLabel[] = [
 
 export function getDemoLabel(id: string): DemoLabel | undefined {
   return DEMO_LABELS.find((d) => d.id === id);
+}
+
+/* ------------------------------------------------------------------ */
+/* Offline report                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Report ids of the form `demo-compliant` are served from here, never the DB. */
+export const DEMO_REPORT_PREFIX = "demo-";
+
+export function demoReportId(labelId: DemoLabel["id"]): string {
+  return `${DEMO_REPORT_PREFIX}${labelId}`;
+}
+
+/**
+ * A ScanRow-shaped view of a demo label, built entirely in the browser.
+ *
+ * Demo Mode must keep working with no network and no account — it is what
+ * runs on stage — so nothing here touches Supabase. Returns null for any id
+ * that is not a demo, letting the caller fall back to a real lookup.
+ */
+export function demoScanRow(id: string): ScanRow | null {
+  if (!id.startsWith(DEMO_REPORT_PREFIX)) return null;
+  const label = getDemoLabel(id.slice(DEMO_REPORT_PREFIX.length));
+  if (!label) return null;
+  return {
+    id,
+    created_at: new Date().toISOString(),
+    image_url: label.image,
+    extracted_text: label.text,
+    language: "eng",
+    verdict: label.verdict,
+    product_name: label.productName,
+    source: "demo",
+    field_results: label.fields,
+    owner_id: null,
+  };
 }

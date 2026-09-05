@@ -66,6 +66,7 @@ const SHOWCASE = [
     body: "Drop a whole shelf of photos at once. Each label is scanned in turn and stamped compliant or not, with the missing declarations listed — the pre-listing check an e-commerce catalogue team needs.",
     cta: "Try a batch",
     to: "/scan" as const,
+    params: undefined,
     search: undefined,
     Art: BatchArt,
   },
@@ -74,8 +75,9 @@ const SHOWCASE = [
     title: "An officer-ready report in one click",
     body: "Every verdict exports to a cited PDF: the declarations table, the violations with their sub-rules, the label photo and the raw extracted text — ready to attach to an inspection file.",
     cta: "See a sample report",
-    to: "/scan" as const,
-    search: { demo: "non-compliant" },
+    to: "/report/$id" as const,
+    params: { id: "demo-non-compliant" },
+    search: undefined,
     Art: ReportArt,
   },
   {
@@ -84,6 +86,7 @@ const SHOWCASE = [
     body: "Each report has its own URL and a QR code printed on the PDF. Scan it from the pack, the file or a colleague's phone and the current verdict opens instantly.",
     cta: "Browse past reports",
     to: "/history" as const,
+    params: undefined,
     search: undefined,
     Art: ShareArt,
   },
@@ -192,7 +195,7 @@ function Home() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="ghost" className="h-12 rounded-xl px-6 text-base">
-                <Link to="/scan" search={{ demo: "compliant" }}>
+                <Link to="/report/$id" params={{ id: "demo-compliant" }}>
                   Try a Demo
                   <ArrowRight className="size-4" />
                 </Link>
@@ -281,6 +284,7 @@ function Home() {
               <Reveal key={f.title} delay={i * 0.12} className="h-full">
                 <Link
                   to={f.to}
+                  params={f.params ?? {}}
                   search={f.search ?? {}}
                   className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift"
                 >

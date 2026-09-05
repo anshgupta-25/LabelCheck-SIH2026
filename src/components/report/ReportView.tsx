@@ -30,7 +30,8 @@ interface Props {
   rawText: string;
   imageUrl?: string | null;
   ocrQuality?: number;
-  onFieldsChange?: (fields: FieldResult[], verdict: "compliant" | "non_compliant") => void;
+  onFieldsChange?:
+    ((fields: FieldResult[], verdict: "compliant" | "non_compliant") => void) | undefined;
   /** Hide the correction controls (viewer is not the report owner). */
   readOnly?: boolean;
 }
