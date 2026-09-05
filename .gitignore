@@ -40,3 +40,6 @@ dist-ssr
 
 # Netlify build output
 .netlify
+
+# Vercel build output / project link
+.vercel

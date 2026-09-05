@@ -22,9 +22,10 @@ export default defineConfig(({ command }) => ({
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),
-    // Nitro packages the SSR server for the deploy target. Only needed for builds;
-    // NITRO_PRESET overrides the target (see netlify.toml).
-    command === "build" ? nitro({ preset: process.env["NITRO_PRESET"] || "netlify" }) : null,
+    // Nitro packages the SSR server for the deploy target. Only needed for builds.
+    // With no NITRO_PRESET it auto-detects Vercel / Netlify from their build env
+    // and falls back to a plain Node server locally. netlify.toml pins "netlify".
+    command === "build" ? nitro(process.env["NITRO_PRESET"] ? { preset: process.env["NITRO_PRESET"] } : {}) : null,
     viteReact(),
   ],
 }));
