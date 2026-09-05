@@ -148,7 +148,15 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
       options: { redirectTo, queryParams: { prompt: "select_account" } },
     });
     if (error) {
-      toast.error(error.message);
+      // Until the provider is configured in Supabase this reads
+      // "Unsupported provider: provider is not enabled", which means nothing
+      // to a visitor.
+      const notConfigured = /provider is not enabled|unsupported provider/i.test(error.message);
+      toast.error(
+        notConfigured
+          ? "Google sign-in isn't set up yet — please use your e-mail address for now."
+          : error.message,
+      );
       setPending(false);
     }
     // On success the browser navigates away to Google.
