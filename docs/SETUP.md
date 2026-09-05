@@ -33,13 +33,14 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 SUPABASE_PROJECT_ID=<project-ref>
 
-# OCR — Google Gemini key from https://aistudio.google.com/apikey
-GEMINI_API_KEY=<gemini-api-key>
+# OCR — any OpenAI-compatible vision model; Gemini by default
+OCR_API_KEY=<api-key>
 ```
 
-`GEMINI_API_KEY` is read only inside the OCR server function, so it never
-reaches the browser. To use a different OpenAI-compatible vision provider, set
-`OCR_API_URL` and `OCR_MODEL` as well (see `.env.example`).
+`OCR_API_KEY` is read only inside the OCR server function, so it never reaches
+the browser. With only the key set, the app uses Google Gemini. To use OpenAI
+(or OpenRouter, Groq…), also set `OCR_API_URL` and `OCR_MODEL` — ready-made
+blocks are in `.env.example`.
 
 Vite reads `.env` once at startup — restart `npm run dev` after changing it.
 
@@ -77,7 +78,7 @@ Any other Nitro target works by setting `NITRO_PRESET` (e.g. `node-server`,
 
 | Symptom | Fix |
 | --- | --- |
-| "Text extraction is not configured" | `GEMINI_API_KEY` missing in `.env` or on the host; restart the dev server after adding it |
+| "Text extraction is not configured" | `OCR_API_KEY` missing in `.env` or on the host; restart the dev server after adding it |
 | "The OCR API key was rejected" | Key is wrong, disabled, or billing is not enabled on the Google project |
 | Demo buttons work but uploads fail | Supabase env vars not set, or the `label-images` bucket / policies are missing |
 | Report images 404 | Signed URL expired — reload the report |

@@ -61,7 +61,7 @@ component — it bypasses the theme.
 **Server vs browser.**
 `import.meta.env.VITE_*` in browser code, `process.env.*` only inside server
 functions (and read it *inside* the handler, not at module scope). Secrets such
-as `GEMINI_API_KEY` must never get a `VITE_` prefix.
+as `OCR_API_KEY` must never get a `VITE_` prefix.
 
 **UI primitives.** Only the shadcn components the app uses are kept. Need
 another one? `npx shadcn@latest add <name>` and commit the new file.
@@ -83,7 +83,7 @@ no OCR, no network, no database dependency. It is what runs on stage.
 | Change demo label content | `src/lib/demo-labels.ts` |
 | Change how the report looks | `src/components/report/ReportView.tsx` |
 | Change the PDF export | `src/lib/report-pdf.ts` |
-| Swap the OCR provider/model | `.env` (`OCR_API_URL`, `OCR_MODEL`) or `src/lib/ocr.functions.ts` |
+| Swap the OCR provider/model | `.env` (`OCR_API_KEY`, `OCR_API_URL`, `OCR_MODEL`) |
 | Change pitch slides | `src/components/pitch/Deck.tsx` |
 | Add a page | new file in `src/routes/` |
 | Change colours/fonts | `src/styles.css` |

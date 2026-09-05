@@ -8,7 +8,7 @@
  *
  * Provider: Google Gemini through its OpenAI-compatible endpoint by default.
  * Any other OpenAI-compatible chat-completions API (OpenAI, OpenRouter, Groq…)
- * can be used by overriding OCR_API_URL and OCR_MODEL.
+ * works by setting OCR_API_KEY, OCR_API_URL and OCR_MODEL — see .env.example.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -38,9 +38,9 @@ export const extractLabelText = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
     // Read inside the handler so the value is taken from the running server's env.
-    const apiKey = process.env["GEMINI_API_KEY"];
+    const apiKey = process.env["OCR_API_KEY"] || process.env["GEMINI_API_KEY"];
     if (!apiKey) {
-      throw new Error("Text extraction is not configured: set GEMINI_API_KEY on the server.");
+      throw new Error("Text extraction is not configured: set OCR_API_KEY on the server.");
     }
     const apiUrl = process.env["OCR_API_URL"] || DEFAULT_API_URL;
     const model = process.env["OCR_MODEL"] || DEFAULT_MODEL;
@@ -73,7 +73,7 @@ export const extractLabelText = createServerFn({ method: "POST" })
         throw new Error("Too many scans right now — please wait a few seconds and try again.");
       }
       if (response.status === 401 || response.status === 403) {
-        throw new Error("The OCR API key was rejected. Check GEMINI_API_KEY on the server.");
+        throw new Error("The OCR API key was rejected. Check OCR_API_KEY on the server.");
       }
       throw new Error(
         `Text extraction failed (${response.status}). Please retry with a clearer photo.`,
