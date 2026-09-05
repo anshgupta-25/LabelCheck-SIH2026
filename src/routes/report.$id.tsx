@@ -2,13 +2,20 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ScanLine, Loader2, History } from "lucide-react";
+import { ArrowLeft, ScanLine, Loader2, History, FileDown, Link2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportView } from "@/components/report/ReportView";
 import { getScan, signedImageUrl, updateScanFields } from "@/lib/scans";
-import { estimateOcrQuality, type FieldResult, type Verdict } from "@/lib/compliance";
+import { downloadReportPdf } from "@/lib/report-pdf";
+import {
+  estimateOcrQuality,
+  finaliseReport,
+  normaliseFields,
+  type FieldResult,
+  type Verdict,
+} from "@/lib/compliance";
 
 export const Route = createFileRoute("/report/$id")({
   head: () => ({
@@ -32,6 +39,8 @@ export const Route = createFileRoute("/report/$id")({
 function ReportPage() {
   const { id } = Route.useParams();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ["scan", id],
@@ -48,6 +57,49 @@ function ReportPage() {
       toast.success("Correction saved — verdict updated.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save the correction.");
+    }
+  }
+
+  function shareUrl() {
+    return typeof window === "undefined" ? "" : `${window.location.origin}/report/${id}`;
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(shareUrl());
+      setCopied(true);
+      toast.success("Share link copied — anyone with it can open this report.");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Could not copy the link.");
+    }
+  }
+
+  async function exportPdf() {
+    if (!data) return;
+    setExporting(true);
+    try {
+      const fields = normaliseFields(data.field_results);
+      const quality = estimateOcrQuality(data.extracted_text);
+      const report = finaliseReport(fields, quality);
+      await downloadReportPdf({
+        id: data.id,
+        productName: data.product_name,
+        verdict: report.verdict,
+        fields: report.fields,
+        rawText: data.extracted_text,
+        createdAt: data.created_at,
+        source: data.source,
+        language: data.language,
+        imageUrl,
+        shareUrl: shareUrl(),
+        ocrQuality: quality,
+      });
+      toast.success("Report downloaded as a PDF.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not build the PDF.");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -93,12 +145,25 @@ function ReportPage() {
           </span>
         </div>
 
-        <h1 className="mt-4 text-4xl sm:text-4xl">
-          {data.product_name || "Compliance report"}
-        </h1>
+        <h1 className="mt-4 text-4xl sm:text-4xl">{data.product_name || "Compliance report"}</h1>
         <p className="mt-2 text-muted-foreground">
           Verified against Rule 6 of the Legal Metrology (Packaged Commodities) Rules, 2011.
         </p>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button onClick={exportPdf} disabled={exporting} className="h-11">
+            {exporting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileDown className="size-4" />
+            )}
+            {exporting ? "Preparing PDF" : "Download PDF report"}
+          </Button>
+          <Button onClick={copyLink} variant="outline" className="h-11">
+            {copied ? <Check className="size-4" /> : <Link2 className="size-4" />}
+            {copied ? "Link copied" : "Copy share link"}
+          </Button>
+        </div>
       </motion.div>
 
       <div className="mt-10">

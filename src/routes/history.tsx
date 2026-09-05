@@ -50,10 +50,26 @@ function HistoryPage() {
 
   const stats = useMemo(() => {
     const all = data ?? [];
+    const violations = all.filter((s) => s.verdict !== "compliant").length;
+
+    const tally = new Map<string, { label: string; count: number }>();
+    for (const s of all) {
+      for (const f of s.field_results ?? []) {
+        if (f.critical && !f.found) {
+          const entry = tally.get(f.key) ?? { label: f.label, count: 0 };
+          entry.count += 1;
+          tally.set(f.key, entry);
+        }
+      }
+    }
+    const top = [...tally.values()].sort((a, b) => b.count - a.count)[0] ?? null;
+
     return {
       total: all.length,
       compliant: all.filter((s) => s.verdict === "compliant").length,
-      violations: all.filter((s) => s.verdict !== "compliant").length,
+      violations,
+      rate: all.length ? Math.round((violations / all.length) * 100) : 0,
+      top,
     };
   }, [data]);
 
@@ -67,17 +83,53 @@ function HistoryPage() {
         </p>
       </motion.div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total inspections", value: stats.total, tone: "text-primary" },
-          { label: "Compliant", value: stats.compliant, tone: "text-success" },
-          { label: "Violations found", value: stats.violations, tone: "text-destructive" },
+          { label: "Total inspections", value: String(stats.total), tone: "text-primary" },
+          { label: "Compliant", value: String(stats.compliant), tone: "text-success" },
+          {
+            label: "Non-compliant rate",
+            value: `${stats.rate}%`,
+            tone: "text-destructive",
+          },
+          {
+            label: "Most common violation",
+            value: stats.top ? stats.top.label : "—",
+            hint: stats.top
+              ? `missing on ${stats.top.count} pack${stats.top.count === 1 ? "" : "s"}`
+              : "",
+            tone: "text-foreground",
+            small: true,
+          },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-            <p className={cn("font-display text-4xl", s.tone)}>{s.value}</p>
+            <p
+              className={cn(
+                "font-display",
+                s.tone,
+                "small" in s && s.small ? "text-xl leading-tight" : "text-4xl",
+              )}
+            >
+              {s.value}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+            {"hint" in s && s.hint ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">{s.hint}</p>
+            ) : null}
           </div>
         ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground shadow-soft">
+        <span className="font-semibold text-foreground">{stats.total}</span> labels scanned ·{" "}
+        <span className="font-semibold text-destructive">{stats.rate}%</span> non-compliant
+        {stats.top ? (
+          <>
+            {" "}
+            · most common violation:{" "}
+            <span className="font-semibold text-foreground">{stats.top.label}</span>
+          </>
+        ) : null}
       </div>
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -162,9 +214,7 @@ function HistoryPage() {
                   {ok ? <ShieldCheck className="size-6" /> : <ShieldAlert className="size-6" />}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">
-                    {s.product_name || "Unnamed commodity"}
-                  </p>
+                  <p className="truncate font-semibold">{s.product_name || "Unnamed commodity"}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {new Date(s.created_at).toLocaleString("en-IN")} ·{" "}
                     {s.language === "hin" ? "Hindi" : "English"} ·{" "}

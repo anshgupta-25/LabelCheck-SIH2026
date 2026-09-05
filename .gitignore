@@ -37,3 +37,6 @@ dist-ssr
 !.env.example
 *.pem
 *.key
+
+# Netlify build output
+.netlify
