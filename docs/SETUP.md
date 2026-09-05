@@ -132,9 +132,18 @@ Authentication → SMTP Settings**:
 | Username | `resend` |
 | Password | your Resend API key |
 
-Then paste the branded templates from `docs/email-templates/` into
-**Authentication → Email Templates** (confirm signup, reset password, magic
-link, change e-mail). Subjects are listed in that folder's README.
+Then apply the branded templates from `docs/email-templates/` (all six auth
+mails, each with the six-digit code as well as the link). Either paste them in
+**Authentication → Email Templates** by hand, or run
+
+```sh
+SUPABASE_ACCESS_TOKEN=sbp_… node scripts/apply-auth-templates.mjs
+```
+
+with a personal access token from supabase.com/dashboard/account/tokens. The
+script can also set `AUTH_SITE_URL`, `AUTH_REDIRECT_URLS`, `AUTH_AUTOCONFIRM`,
+`AUTH_EMAIL_RATE_LIMIT` and the Google client (`GOOGLE_CLIENT_ID` /
+`GOOGLE_CLIENT_SECRET`) in the same call.
 
 ### Password reset flow
 

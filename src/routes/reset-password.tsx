@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,9 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const problem = new URLSearchParams(window.location.search).get("error_description");
@@ -59,38 +62,85 @@ function ResetPasswordPage() {
     void navigate({ to: "/scan", replace: true });
   }
 
-  if (!user && !expired) {
-    return (
-      <AuthShell
-        title="One moment"
-        subtitle="Checking your reset link…"
-        footer={
-          <Link to="/login" className="font-medium text-primary hover:underline">
-            Back to log in
-          </Link>
-        }
-      >
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="size-6 animate-spin text-primary" />
-        </div>
-      </AuthShell>
-    );
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifying(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: otpEmail.trim(),
+      token: otp.trim(),
+      type: "recovery",
+    });
+    setVerifying(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    // Session is now set; the password form renders on the next paint.
   }
 
   if (!user) {
+    const waiting = !expired;
     return (
       <AuthShell
-        title="This link has expired"
-        subtitle="Reset links work once and for one hour. Request a fresh one and try again."
+        title={waiting ? "Checking your link…" : "Enter your code"}
+        subtitle={
+          waiting
+            ? "One moment. If you came from the reset e-mail, this takes a second."
+            : "The link didn't verify — it may have been used already. Type the six-digit code from the e-mail instead, or request a new one."
+        }
         footer={
-          <Link to="/login" className="font-medium text-primary hover:underline">
-            Back to log in
-          </Link>
+          <>
+            Need a fresh e-mail?{" "}
+            <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+              Request a new link
+            </Link>
+          </>
         }
       >
-        <Button asChild className="h-12 w-full text-base">
-          <Link to="/forgot-password">Request a new link</Link>
-        </Button>
+        {waiting && (
+          <div className="mb-6 flex items-center justify-center">
+            <Loader2 className="size-6 animate-spin text-primary" />
+          </div>
+        )}
+        <form onSubmit={verifyCode} className="space-y-4">
+          <Field label="E-mail">
+            <Input
+              type="email"
+              autoComplete="email"
+              required
+              value={otpEmail}
+              onChange={(e) => setOtpEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="h-12"
+            />
+          </Field>
+          <Field label="Six-digit code" hint="from the reset e-mail">
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              placeholder="482913"
+              className="h-12 font-mono text-lg tracking-[0.3em]"
+            />
+          </Field>
+          <Button
+            type="submit"
+            variant={waiting ? "outline" : "default"}
+            className="h-12 w-full text-base"
+            disabled={verifying}
+          >
+            {verifying ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <KeyRound className="size-5" />
+            )}
+            Verify code
+          </Button>
+        </form>
       </AuthShell>
     );
   }
