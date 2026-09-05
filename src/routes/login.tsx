@@ -4,7 +4,14 @@ import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AuthShell, GoogleButton, OrDivider, Field, safeNext } from "@/components/auth/AuthShell";
+import {
+  AuthShell,
+  GoogleButton,
+  OrDivider,
+  Field,
+  safeNext,
+  carryNext,
+} from "@/components/auth/AuthShell";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,7 +74,7 @@ function LoginPage() {
           New to LabelCheck?{" "}
           <Link
             to="/signup"
-            search={{ next: rawNext }}
+            search={{ next: carryNext(rawNext) }}
             className="font-medium text-primary hover:underline"
           >
             Create an account

@@ -5,7 +5,14 @@ import { Loader2, UserPlus, ShieldCheck, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AuthShell, GoogleButton, OrDivider, Field, safeNext } from "@/components/auth/AuthShell";
+import {
+  AuthShell,
+  GoogleButton,
+  OrDivider,
+  Field,
+  safeNext,
+  carryNext,
+} from "@/components/auth/AuthShell";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -173,8 +180,8 @@ function SignupPage() {
               ref={codeRef}
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[0-9]{6,8}"
+              maxLength={8}
               required
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
@@ -192,7 +199,7 @@ function SignupPage() {
           <Button
             type="submit"
             className="h-12 w-full text-base"
-            disabled={verifying || code.length !== 6}
+            disabled={verifying || code.length < 6}
           >
             {verifying ? (
               <Loader2 className="size-5 animate-spin" />
@@ -232,7 +239,7 @@ function SignupPage() {
           Already have an account?{" "}
           <Link
             to="/login"
-            search={{ next: rawNext }}
+            search={{ next: carryNext(rawNext) }}
             className="font-medium text-primary hover:underline"
           >
             Log in
@@ -289,7 +296,7 @@ function SignupPage() {
                 {" "}
                 <Link
                   to="/login"
-                  search={{ next: rawNext }}
+                  search={{ next: carryNext(rawNext) }}
                   className="font-semibold underline underline-offset-2"
                 >
                   Log in
