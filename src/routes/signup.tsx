@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { Loader2, UserPlus, MailCheck } from "lucide-react";
+import { Loader2, UserPlus, ShieldCheck, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,28 +27,60 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
 });
 
+// Supabase enforces a 60s cooldown between resends; match it so the
+// button never fires into a 429.
+const RESEND_COOLDOWN = 60;
+
 function SignupPage() {
   const { next: rawNext } = Route.useSearch();
   const next = safeNext(rawNext);
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+
+  // Second step: the six-digit code from the confirmation e-mail.
+  const [awaitingCode, setAwaitingCode] = useState(false);
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!loading && user && !awaitingConfirm) void navigate({ href: next, replace: true });
-  }, [loading, user, next, navigate, awaitingConfirm]);
+    if (!loading && user && !awaitingCode) void navigate({ href: next, replace: true });
+  }, [loading, user, next, navigate, awaitingCode]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (awaitingCode) codeRef.current?.focus();
+  }, [awaitingCode]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setPending(true);
+
+    const address = email.trim();
+    // Tell someone who already has an account to log in, rather than sending
+    // them a confirmation mail that will never make sense.
+    const { data: status } = await supabase.rpc("account_status", { check_email: address });
+    if (status === "active") {
+      setPending(false);
+      setError("An account with this e-mail already exists — log in instead.");
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: address,
       password,
       options: {
         data: { full_name: name.trim() },
@@ -61,53 +93,135 @@ function SignupPage() {
       toast.error(error.message);
       return;
     }
-    // Supabase returns a user with no identities when the e-mail already exists.
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
-      const msg = "An account with this e-mail already exists — log in instead.";
+    if (data.session) {
+      // Confirmation is switched off on this project — straight in.
+      toast.success("Account created. You're in.");
+      void navigate({ href: next, replace: true });
+      return;
+    }
+    setAwaitingCode(true);
+    setCooldown(RESEND_COOLDOWN);
+    toast.success(`We sent a six-digit code to ${address}.`);
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setVerifying(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: code.trim(),
+      type: "signup",
+    });
+    setVerifying(false);
+    if (error) {
+      const msg = /expired|invalid/i.test(error.message)
+        ? "That code is wrong or has expired. Check the latest e-mail, or send a new code."
+        : error.message;
       setError(msg);
       return;
     }
-    if (data.session) {
-      toast.success("Account created. You're in.");
-      void navigate({ href: next, replace: true });
-    } else {
-      // E-mail confirmation is switched on for this project.
-      setAwaitingConfirm(true);
-    }
+    // Session is live now; AuthProvider sends the welcome e-mail and the
+    // redirect below takes over.
+    toast.success("E-mail confirmed. Welcome to LabelCheck.");
+    setAwaitingCode(false);
+    void navigate({ href: next, replace: true });
   }
 
-  if (awaitingConfirm) {
+  async function resend() {
+    setError(null);
+    const { error } = await supabase.auth.resend({ type: "signup", email: email.trim() });
+    if (error) {
+      const tooSoon = /rate|429|only request this after/i.test(error.message);
+      toast.error(tooSoon ? "Please wait a minute before asking for another code." : error.message);
+      if (tooSoon) setCooldown(RESEND_COOLDOWN);
+      return;
+    }
+    setCooldown(RESEND_COOLDOWN);
+    toast.success("A new code is on its way.");
+  }
+
+  /* ----------------------------- code step ----------------------------- */
+
+  if (awaitingCode) {
     return (
       <AuthShell
-        title="Check your inbox"
-        subtitle={`We sent a confirmation link to ${email.trim()}.`}
+        title="Enter your code"
+        subtitle={`We sent a six-digit confirmation code to ${email.trim()}.`}
         footer={
-          <>
-            Wrong address?{" "}
-            <button
-              type="button"
-              onClick={() => setAwaitingConfirm(false)}
-              className="font-medium text-primary hover:underline"
-            >
-              Go back
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => {
+              setAwaitingCode(false);
+              setCode("");
+              setError(null);
+            }}
+            className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+          >
+            <ArrowLeft className="size-3.5" /> Use a different e-mail
+          </button>
         }
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="rounded-2xl border border-border bg-card p-6 text-sm leading-relaxed text-muted-foreground shadow-soft"
+        <motion.form
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={verify}
+          className="space-y-4"
         >
-          <span className="bg-primary-gradient mb-4 flex size-11 items-center justify-center rounded-xl text-primary-foreground">
-            <MailCheck className="size-5" />
-          </span>
-          Open the link in that e-mail to activate your account. It brings you straight back here
-          and signs you in. If it hasn't arrived in a minute, check your spam folder.
-        </motion.div>
+          <Field label="Confirmation code" hint="from the e-mail we just sent">
+            <Input
+              ref={codeRef}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="482913"
+              className="h-14 text-center font-mono text-2xl tracking-[0.4em]"
+            />
+          </Field>
+
+          {error && (
+            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            className="h-12 w-full text-base"
+            disabled={verifying || code.length !== 6}
+          >
+            {verifying ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <ShieldCheck className="size-5" />
+            )}
+            Confirm and continue
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Didn't get it?{" "}
+            {cooldown > 0 ? (
+              <span>Send another in {cooldown}s</span>
+            ) : (
+              <button
+                type="button"
+                onClick={resend}
+                className="font-medium text-primary hover:underline"
+              >
+                Send a new code
+              </button>
+            )}
+          </p>
+        </motion.form>
       </AuthShell>
     );
   }
+
+  /* ---------------------------- details step ---------------------------- */
 
   return (
     <AuthShell
@@ -146,7 +260,10 @@ function SignupPage() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError(null);
+            }}
             placeholder="you@example.com"
             className="h-12"
           />
@@ -165,9 +282,21 @@ function SignupPage() {
         </Field>
 
         {error && (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
-          </p>
+            {error.includes("already exists") && (
+              <>
+                {" "}
+                <Link
+                  to="/login"
+                  search={{ next: rawNext }}
+                  className="font-semibold underline underline-offset-2"
+                >
+                  Log in
+                </Link>
+              </>
+            )}
+          </div>
         )}
 
         <Button type="submit" className="h-12 w-full text-base" disabled={pending}>
@@ -175,8 +304,8 @@ function SignupPage() {
           Create account
         </Button>
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          By continuing you agree that inspection records you create are stored under your account
-          for audit purposes.
+          We'll e-mail you a six-digit code to confirm the address. Inspection records you create
+          are stored under your account for audit purposes.
         </p>
       </form>
     </AuthShell>

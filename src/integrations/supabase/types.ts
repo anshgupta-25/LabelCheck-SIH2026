@@ -52,7 +52,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      account_status: { Args: { check_email: string }; Returns: string };
     };
     Enums: {
       [_ in never]: never;
