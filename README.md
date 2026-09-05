@@ -73,8 +73,8 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | Route | What it does |
 | --- | --- |
 | `/` | Animated hero, three-step explainer, impact stats |
-| `/scan` | Drag-and-drop or camera upload, scan-line processing, **Try a Demo** |
-| `/report/:id` | Verdict banner, per-field checklist, confidence bars, raw text, inline correction |
+| `/scan` | Drag-and-drop or camera upload — one label, or up to 8 for a **batch check** — plus **Try a Demo** |
+| `/report/:id` | Verdict banner, per-field checklist, confidence bars, raw text, inline correction, **PDF export**, **share link + QR** |
 | `/history` | Every past inspection with verdict, timestamp and filters |
 | `/how-it-works` | Animated architecture flow, legal basis, roadmap |
 | `/pitch` | Built-in 6-slide SIH pitch deck with fullscreen |

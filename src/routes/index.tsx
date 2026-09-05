@@ -10,7 +10,9 @@ import {
   Languages,
   Eye,
   PencilLine,
-  Database,
+  Layers,
+  FileDown,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +44,7 @@ const STEPS = [
   {
     icon: Camera,
     title: "Capture the label",
-    body: "Photograph or upload the principal display panel. Works on any phone, in the field.",
+    body: "Photograph or upload the principal display panel — one pack, or up to eight at once for a batch check. Works on any phone, in the field.",
   },
   {
     icon: Cpu,
@@ -52,7 +54,7 @@ const STEPS = [
   {
     icon: FileCheck2,
     title: "Get the verdict",
-    body: "A per-field checklist with confidence scores, extracted values and the exact legal citation for every violation.",
+    body: "A per-field checklist with confidence scores, extracted values and the exact legal citation for every violation — exportable as a cited PDF.",
   },
 ];
 
@@ -73,9 +75,19 @@ const DIFFERENTIATORS = [
     body: "Any mis-read field can be corrected in place; the verdict recomputes instantly.",
   },
   {
-    icon: Database,
-    title: "Built to scale",
-    body: "Every inspection is logged and searchable, ready for batch and e-commerce scanning.",
+    icon: Layers,
+    title: "Batch checking",
+    body: "Drop up to eight label photos at once and get one table of verdicts — the pre-listing check an e-commerce catalogue team needs.",
+  },
+  {
+    icon: FileDown,
+    title: "PDF evidence",
+    body: "One click exports a cited, officer-ready PDF: verdict, every declaration, the violations and the raw extracted text.",
+  },
+  {
+    icon: QrCode,
+    title: "Share link + QR",
+    body: "Every report has a permanent link and a QR code that opens the live verdict — printed on the PDF, ready for the pack or the file.",
   },
 ];
 
@@ -129,10 +141,10 @@ function Home() {
               transition={{ duration: 0.65, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
               className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg"
             >
-              LabelCheck scans a photo of any pre-packaged commodity and verifies all seven
-              mandatory declarations required by Rule 6 of the Legal Metrology (Packaged
-              Commodities) Rules, 2011 — with confidence scores and the exact statutory citation for
-              every violation.
+              LabelCheck scans a photo of any pre-packaged commodity — or a batch of them — and
+              verifies all seven mandatory declarations required by Rule 6 of the Legal Metrology
+              (Packaged Commodities) Rules, 2011, with confidence scores, the exact statutory
+              citation for every violation, and a shareable PDF report.
             </motion.p>
 
             <motion.div
@@ -256,7 +268,7 @@ function Home() {
           </p>
         </Reveal>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {DIFFERENTIATORS.map((d, i) => (
             <Reveal key={d.title} delay={i * 0.08}>
               <div className="h-full rounded-2xl border border-border bg-card p-6 shadow-soft">
@@ -277,7 +289,8 @@ function Home() {
               Check your first label now
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
-              No sign-up, no setup. Upload a photo or run one of the built-in demo labels.
+              No sign-up, no setup. Upload one photo, a batch of eight, or run a built-in demo
+              label.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Button asChild size="lg" variant="secondary" className="h-12 px-6">

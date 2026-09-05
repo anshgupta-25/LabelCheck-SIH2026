@@ -38,7 +38,11 @@ export const Route = createFileRoute("/how-it-works")({
 });
 
 const FLOW = [
-  { icon: Camera, title: "Image", body: "Photo of the principal display panel, from any phone." },
+  {
+    icon: Camera,
+    title: "Image",
+    body: "Photo of the principal display panel, from any phone — one label or a batch of up to eight.",
+  },
   {
     icon: ScanText,
     title: "Text extraction",
@@ -57,7 +61,7 @@ const FLOW = [
   {
     icon: Database,
     title: "Compliance report",
-    body: "Verdict, per-field values, citations and raw text — logged for audit.",
+    body: "Verdict, per-field values, citations and raw text — logged for audit, exportable as a cited PDF with a QR link to the live verdict.",
   },
 ];
 
@@ -178,8 +182,8 @@ function HowItWorks() {
           {[
             {
               icon: Boxes,
-              title: "Bulk & batch mode",
-              body: "Upload a folder of label images — or a full product catalogue — and get a consolidated compliance sheet with per-SKU violations, exportable as CSV for enforcement drives.",
+              title: "Catalogue-scale batches",
+              body: "Batch checking of up to eight labels ships today. Next: whole-catalogue uploads with a consolidated per-SKU compliance sheet, exportable as CSV for enforcement drives.",
             },
             {
               icon: Store,
