@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BatchRouteImport } from './routes/batch'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PitchRouteImport } from './routes/pitch'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ScanRouteImport } from './routes/scan'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -28,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const BatchRoute = BatchRouteImport.update({
   id: '/batch',
   path: '/batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -48,6 +55,11 @@ const LoginRoute = LoginRouteImport.update({
 const PitchRoute = PitchRouteImport.update({
   id: '/pitch',
   path: '/pitch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScanRoute = ScanRouteImport.update({
@@ -74,10 +86,12 @@ const ReportIdRoute = ReportIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/batch': typeof BatchRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -86,10 +100,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/batch': typeof BatchRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -99,10 +115,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/batch': typeof BatchRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/history': typeof HistoryRoute
   '/how-it-works': typeof HowItWorksRoute
   '/login': typeof LoginRoute
   '/pitch': typeof PitchRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/auth/callback': typeof AuthCallbackRoute
@@ -113,10 +131,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/batch'
+    | '/forgot-password'
     | '/history'
     | '/how-it-works'
     | '/login'
     | '/pitch'
+    | '/reset-password'
     | '/scan'
     | '/signup'
     | '/auth/callback'
@@ -125,10 +145,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/batch'
+    | '/forgot-password'
     | '/history'
     | '/how-it-works'
     | '/login'
     | '/pitch'
+    | '/reset-password'
     | '/scan'
     | '/signup'
     | '/auth/callback'
@@ -137,10 +159,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/batch'
+    | '/forgot-password'
     | '/history'
     | '/how-it-works'
     | '/login'
     | '/pitch'
+    | '/reset-password'
     | '/scan'
     | '/signup'
     | '/auth/callback'
@@ -150,10 +174,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BatchRoute: typeof BatchRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   HistoryRoute: typeof HistoryRoute
   HowItWorksRoute: typeof HowItWorksRoute
   LoginRoute: typeof LoginRoute
   PitchRoute: typeof PitchRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ScanRoute: typeof ScanRoute
   SignupRoute: typeof SignupRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
@@ -174,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/batch'
       fullPath: '/batch'
       preLoaderRoute: typeof BatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -202,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/pitch'
       fullPath: '/pitch'
       preLoaderRoute: typeof PitchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/scan': {
@@ -238,10 +278,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BatchRoute: BatchRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   HistoryRoute: HistoryRoute,
   HowItWorksRoute: HowItWorksRoute,
   LoginRoute: LoginRoute,
   PitchRoute: PitchRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ScanRoute: ScanRoute,
   SignupRoute: SignupRoute,
   AuthCallbackRoute: AuthCallbackRoute,

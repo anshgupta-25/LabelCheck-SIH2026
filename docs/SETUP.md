@@ -103,3 +103,43 @@ or Google. Configure once in the Supabase dashboard → **Authentication**:
 Ownership is enforced in the database (`owner_id` on `scans`, owner-only
 insert/update/delete policies), so a user can only ever list, correct or delete
 their own inspections.
+
+## 9. E-mail (Resend)
+
+The app sends two kinds of mail itself through [Resend](https://resend.com):
+a **welcome e-mail** after the first sign-in and **"E-mail report"** from a
+report page (owner only). Both go through the server function in
+`src/lib/email.functions.ts`; nothing is sent when `RESEND_API_KEY` is empty.
+
+1. In Resend, verify the sending domain (`anshguptaa.in` is already verified —
+   the DKIM/SPF records exist at Hostinger) and create an API key.
+2. Set in `.env` and in the host's environment variables:
+   `RESEND_API_KEY`, `RESEND_FROM` (e.g. `LabelCheck <labelcheck@anshguptaa.in>`),
+   `PUBLIC_APP_URL` (used for links inside e-mails).
+
+### Auth e-mails through Resend as well
+
+Supabase's built-in mailer is rate-limited (a handful per hour) and unbranded.
+Point it at Resend once, in **Supabase dashboard → Project Settings →
+Authentication → SMTP Settings**:
+
+| Field | Value |
+| --- | --- |
+| Sender e-mail | `labelcheck@anshguptaa.in` |
+| Sender name | `LabelCheck` |
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | your Resend API key |
+
+Then paste the branded templates from `docs/email-templates/` into
+**Authentication → Email Templates** (confirm signup, reset password, magic
+link, change e-mail). Subjects are listed in that folder's README.
+
+### Password reset flow
+
+`/forgot-password` asks Supabase to send the reset mail; the link lands on
+`/reset-password`, which exchanges the code and lets the user set a new
+password. Add `https://sih.anshguptaa.in/reset-password` and
+`http://localhost:8080/reset-password` to the redirect allow-list if you use a
+strict list instead of the `/**` wildcards from section 8.

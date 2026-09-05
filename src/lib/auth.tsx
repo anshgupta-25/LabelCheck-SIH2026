@@ -9,11 +9,20 @@
  * Sessions live in the browser only; during SSR everything renders as
  * "loading" and the client takes over on hydration.
  */
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendWelcomeEmail } from "@/lib/email.functions";
 
 interface AuthState {
   user: User | null;
@@ -28,6 +37,27 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const welcomed = useRef<string | null>(null);
+
+  // First time we see a signed-in user who hasn't had the welcome mail, send it
+  // (server-side, via Resend) and remember that on the account.
+  useEffect(() => {
+    const u = session?.user;
+    if (!u || !session?.access_token) return;
+    const meta = (u.user_metadata ?? {}) as { welcome_sent?: boolean };
+    if (meta.welcome_sent || welcomed.current === u.id) return;
+    welcomed.current = u.id;
+    void sendWelcomeEmail({
+      data: { accessToken: session.access_token, origin: window.location.origin },
+    })
+      .then((r) => {
+        if (r.sent || r.reason === "already sent") {
+          return supabase.auth.updateUser({ data: { welcome_sent: true } });
+        }
+        return undefined;
+      })
+      .catch((e: unknown) => console.warn("[LabelCheck] welcome e-mail skipped:", e));
+  }, [session]);
 
   useEffect(() => {
     let active = true;

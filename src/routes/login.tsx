@@ -90,7 +90,14 @@ function LoginPage() {
             className="h-12"
           />
         </Field>
-        <Field label="Password">
+        <Field
+          label="Password"
+          hint={
+            <Link to="/forgot-password" className="text-primary hover:underline">
+              Forgot password?
+            </Link>
+          }
+        >
           <Input
             type="password"
             autoComplete="current-password"

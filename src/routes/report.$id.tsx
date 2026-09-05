@@ -2,14 +2,27 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ScanLine, Loader2, History, FileDown, Link2, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  ScanLine,
+  Loader2,
+  History,
+  FileDown,
+  Link2,
+  Check,
+  Mail,
+  Send,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ReportView } from "@/components/report/ReportView";
 import { getScan, signedImageUrl, updateScanFields } from "@/lib/scans";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { useAuth } from "@/lib/auth";
+import { emailReport } from "@/lib/email.functions";
 import {
   estimateOcrQuality,
   finaliseReport,
@@ -42,7 +55,11 @@ function ReportPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailTo, setMailTo] = useState("");
+  const [mailNote, setMailNote] = useState("");
+  const [mailing, setMailing] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ["scan", id],
@@ -74,6 +91,31 @@ function ReportPage() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Could not copy the link.");
+    }
+  }
+
+  async function sendMail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!session?.access_token) return;
+    setMailing(true);
+    try {
+      await emailReport({
+        data: {
+          accessToken: session.access_token,
+          scanId: id,
+          to: mailTo.trim(),
+          note: mailNote.trim() || undefined,
+          origin: window.location.origin,
+        },
+      });
+      toast.success(`Report e-mailed to ${mailTo.trim()}.`);
+      setMailOpen(false);
+      setMailTo("");
+      setMailNote("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send the e-mail.");
+    } finally {
+      setMailing(false);
     }
   }
 
@@ -172,7 +214,52 @@ function ReportPage() {
             {copied ? <Check className="size-4" /> : <Link2 className="size-4" />}
             {copied ? "Link copied" : "Copy share link"}
           </Button>
+          {canEdit && (
+            <Button
+              onClick={() => setMailOpen((v) => !v)}
+              variant="outline"
+              className="h-11"
+              aria-expanded={mailOpen}
+            >
+              {mailOpen ? <X className="size-4" /> : <Mail className="size-4" />}
+              {mailOpen ? "Close" : "E-mail report"}
+            </Button>
+          )}
         </div>
+
+        {canEdit && mailOpen && (
+          <motion.form
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            onSubmit={sendMail}
+            className="mt-4 grid gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft sm:grid-cols-[1fr_1fr_auto]"
+          >
+            <Input
+              type="email"
+              required
+              placeholder="recipient@example.com"
+              value={mailTo}
+              onChange={(e) => setMailTo(e.target.value)}
+              className="h-11"
+              autoFocus
+            />
+            <Input
+              placeholder="Optional note for the recipient"
+              value={mailNote}
+              onChange={(e) => setMailNote(e.target.value)}
+              maxLength={500}
+              className="h-11"
+            />
+            <Button type="submit" className="h-11" disabled={mailing}>
+              {mailing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Send
+            </Button>
+            <p className="text-xs text-muted-foreground sm:col-span-3">
+              Sends a branded summary with the verdict, missing declarations and a link to this live
+              report. Replies go to your e-mail address.
+            </p>
+          </motion.form>
+        )}
       </motion.div>
 
       <div className="mt-10">
