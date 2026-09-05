@@ -177,7 +177,8 @@ function ReportPage() {
   // still works for a signed-out visitor.
   const isDemo = !!demo;
   const canEdit = isDemo || (!!user && data?.owner_id === user.id);
-  const canEmail = !isDemo && !!user && data?.owner_id === user.id;
+  // Demo reports can be e-mailed too, but only by a signed-in user.
+  const canEmail = !!user && (isDemo || data?.owner_id === user.id);
 
   if (error || !data) {
     return (

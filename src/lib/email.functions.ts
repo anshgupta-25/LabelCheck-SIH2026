@@ -11,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 import type { FieldResult } from "./compliance";
+import { demoScanRow } from "./demo-labels";
 
 async function userFromToken(accessToken: string) {
   const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
@@ -56,7 +57,8 @@ export const sendWelcomeEmail = createServerFn({ method: "POST" })
 
 const reportInput = z.object({
   accessToken: z.string().min(20),
-  scanId: z.string().uuid(),
+  // A real report id is a uuid; demo reports use ids like "demo-compliant".
+  scanId: z.string().min(3).max(64),
   to: z.string().email(),
   note: z.string().max(500).optional(),
   origin: z.string().url().optional(),
@@ -67,17 +69,32 @@ export const emailReport = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => reportInput.parse(d))
   .handler(async ({ data }) => {
     const { client, user } = await userFromToken(data.accessToken);
-    const { data: scan, error } = await client
-      .from("scans")
-      .select("id, owner_id, product_name, verdict, field_results")
-      .eq("id", data.scanId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!scan) throw new Error("Report not found.");
-    if (scan.owner_id !== user.id)
-      throw new Error("Only the inspector who created a report can e-mail it.");
 
-    const fields = (scan.field_results as unknown as FieldResult[]) ?? [];
+    // Demo reports live only in the bundle, so build the message from the
+    // fixture. Sending still needs a signed-in caller — otherwise this would
+    // be an open relay for anyone with the public key.
+    const demo = demoScanRow(data.scanId);
+    let scan: { id: string; product_name: string | null; verdict: string };
+    let fields: FieldResult[];
+
+    if (demo) {
+      scan = { id: demo.id, product_name: demo.product_name, verdict: demo.verdict };
+      fields = demo.field_results;
+    } else {
+      if (!/^[0-9a-f-]{36}$/i.test(data.scanId)) throw new Error("Report not found.");
+      const { data: row, error } = await client
+        .from("scans")
+        .select("id, owner_id, product_name, verdict, field_results")
+        .eq("id", data.scanId)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) throw new Error("Report not found.");
+      if (row.owner_id !== user.id)
+        throw new Error("Only the inspector who created a report can e-mail it.");
+      scan = { id: row.id, product_name: row.product_name, verdict: row.verdict };
+      fields = (row.field_results as unknown as FieldResult[]) ?? [];
+    }
+
     const missing = fields.filter((f) => f.critical && !f.found).map((f) => f.label);
 
     const { sendEmail, reportEmail, appUrl } = await import("./email.server");
