@@ -79,7 +79,7 @@ Any other Nitro target works by setting `NITRO_PRESET` (e.g. `node-server`,
 | Symptom | Fix |
 | --- | --- |
 | "Text extraction is not configured" | `OCR_API_KEY` missing in `.env` or on the host; restart the dev server after adding it |
-| "The OCR API key was rejected" | Key is wrong, disabled, or billing is not enabled on the Google project |
+| "The OCR API key was rejected" | Key is wrong, disabled, or billing is not enabled at the provider |
 | Demo buttons work but uploads fail | Supabase env vars not set, or the `label-images` bucket / policies are missing |
 | Report images 404 | Signed URL expired — reload the report |
 | `Deploy directory 'dist/client' does not exist` | Publish directory must be `dist` |
