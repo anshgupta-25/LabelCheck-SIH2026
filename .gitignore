@@ -43,3 +43,6 @@ dist-ssr
 
 # Vercel build output / project link
 .vercel
+
+# Supabase CLI scratch
+supabase/.temp
