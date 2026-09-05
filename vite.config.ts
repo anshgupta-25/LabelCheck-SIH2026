@@ -25,7 +25,9 @@ export default defineConfig(({ command }) => ({
     // Nitro packages the SSR server for the deploy target. Only needed for builds.
     // With no NITRO_PRESET it auto-detects Vercel / Netlify from their build env
     // and falls back to a plain Node server locally. netlify.toml pins "netlify".
-    command === "build" ? nitro(process.env["NITRO_PRESET"] ? { preset: process.env["NITRO_PRESET"] } : {}) : null,
+    command === "build"
+      ? nitro(process.env["NITRO_PRESET"] ? { preset: process.env["NITRO_PRESET"] } : {})
+      : null,
     viteReact(),
   ],
 }));

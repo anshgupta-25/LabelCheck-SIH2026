@@ -19,7 +19,9 @@ const root = resolve(here, "..");
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 const ref =
   process.argv[2] ||
-  /project_id\s*=\s*"([^"]+)"/.exec(readFileSync(resolve(root, "supabase/config.toml"), "utf8"))?.[1];
+  /project_id\s*=\s*"([^"]+)"/.exec(
+    readFileSync(resolve(root, "supabase/config.toml"), "utf8"),
+  )?.[1];
 
 if (!token) {
   console.error("Set SUPABASE_ACCESS_TOKEN (personal access token, sbp_...).");
@@ -71,8 +73,10 @@ const opt = (key, value) => {
 };
 opt("site_url", process.env.AUTH_SITE_URL);
 opt("uri_allow_list", process.env.AUTH_REDIRECT_URLS);
-if (process.env.AUTH_AUTOCONFIRM) opt("mailer_autoconfirm", process.env.AUTH_AUTOCONFIRM === "true");
-if (process.env.AUTH_EMAIL_RATE_LIMIT) opt("rate_limit_email_sent", Number(process.env.AUTH_EMAIL_RATE_LIMIT));
+if (process.env.AUTH_AUTOCONFIRM)
+  opt("mailer_autoconfirm", process.env.AUTH_AUTOCONFIRM === "true");
+if (process.env.AUTH_EMAIL_RATE_LIMIT)
+  opt("rate_limit_email_sent", Number(process.env.AUTH_EMAIL_RATE_LIMIT));
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   opt("external_google_enabled", true);
   opt("external_google_client_id", process.env.GOOGLE_CLIENT_ID);
