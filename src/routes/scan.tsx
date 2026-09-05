@@ -421,9 +421,21 @@ function ScanPage() {
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-[11px] font-semibold text-accent">
                       <Layers className="size-3.5" /> Batch check
                     </span>
-                    <p className="text-sm text-muted-foreground">
-                      {items.length} of {MAX} labels selected
-                    </p>
+                    {busy || done.length > 0 ? (
+                      <p className="font-mono text-xs font-semibold">
+                        <span className="text-foreground">
+                          {done.length}/{items.length}
+                        </span>
+                        <span className="text-muted-foreground"> checked · </span>
+                        <span className={nonCompliant ? "text-destructive" : "text-success"}>
+                          {nonCompliant} non-compliant
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {items.length} of {MAX} labels selected
+                      </p>
+                    )}
                     {!busy && (
                       <button
                         onClick={clearAll}
@@ -437,7 +449,16 @@ function ScanPage() {
                     {items.map((it) => (
                       <div
                         key={it.id}
-                        className="group relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted"
+                        className={cn(
+                          "group relative aspect-square overflow-hidden rounded-2xl border-2 bg-muted transition-colors",
+                          it.status === "done"
+                            ? it.verdict === "compliant"
+                              ? "border-success/60"
+                              : "border-destructive/60"
+                            : it.status === "failed"
+                              ? "border-warning/60"
+                              : "border-border",
+                        )}
                       >
                         <img src={it.preview} alt="" className="size-full object-cover" />
                         {it.status === "running" && (
@@ -557,15 +578,8 @@ function ScanPage() {
               )}
             </Button>
           )}
-          {isBatch && busy && (
-            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm shadow-soft">
-              <Loader2 className="size-4 animate-spin text-primary" />
-              Checking {done.length + failed.length + 1} of {items.length}…
-            </div>
-          )}
-
           {/* Batch results */}
-          {isBatch && done.length > 0 && (
+          {isBatch && (busy || done.length > 0) && (
             <BatchResults items={items} done={done} nonCompliant={nonCompliant} busy={busy} />
           )}
         </div>
