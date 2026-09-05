@@ -10,14 +10,15 @@ import {
   Languages,
   Eye,
   PencilLine,
+  Database,
   Layers,
   FileDown,
   QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Reveal, CountUp } from "@/components/site/Reveal";
 import { WireGlobe } from "@/components/site/WireGlobe";
+import { BatchArt, ReportArt, ShareArt } from "@/components/site/FeatureArt";
 import { RULES } from "@/lib/compliance";
 
 export const Route = createFileRoute("/")({
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Photograph a product label and get an instant Rule 6 compliance verdict: all 7 mandatory declarations checked, with confidence scores and legal citations.",
+          "Photograph a product label — or a batch of eight — and get an instant Rule 6 compliance verdict: all 7 mandatory declarations checked, with confidence scores, legal citations and a shareable PDF report.",
       },
       { property: "og:title", content: "LabelCheck — Instant label compliance scanner" },
       {
@@ -58,6 +59,36 @@ const STEPS = [
   },
 ];
 
+const SHOWCASE = [
+  {
+    eyebrow: "Batch check",
+    title: "Eight labels, one table of verdicts",
+    body: "Drop a whole shelf of photos at once. Each label is scanned in turn and stamped compliant or not, with the missing declarations listed — the pre-listing check an e-commerce catalogue team needs.",
+    cta: "Try a batch",
+    to: "/scan" as const,
+    search: undefined,
+    Art: BatchArt,
+  },
+  {
+    eyebrow: "PDF evidence",
+    title: "An officer-ready report in one click",
+    body: "Every verdict exports to a cited PDF: the declarations table, the violations with their sub-rules, the label photo and the raw extracted text — ready to attach to an inspection file.",
+    cta: "See a sample report",
+    to: "/scan" as const,
+    search: { demo: "non-compliant" },
+    Art: ReportArt,
+  },
+  {
+    eyebrow: "Share link + QR",
+    title: "A permanent link to the live verdict",
+    body: "Each report has its own URL and a QR code printed on the PDF. Scan it from the pack, the file or a colleague's phone and the current verdict opens instantly.",
+    cta: "Browse past reports",
+    to: "/history" as const,
+    search: undefined,
+    Art: ShareArt,
+  },
+];
+
 const DIFFERENTIATORS = [
   {
     icon: Languages,
@@ -72,29 +103,21 @@ const DIFFERENTIATORS = [
   {
     icon: PencilLine,
     title: "Inspector-correctable",
-    body: "Any mis-read field can be corrected in place; the verdict recomputes instantly.",
+    body: "Any mis-read field can be corrected in place; the verdict recomputes instantly and the fix is saved.",
   },
   {
-    icon: Layers,
-    title: "Batch checking",
-    body: "Drop up to eight label photos at once and get one table of verdicts — the pre-listing check an e-commerce catalogue team needs.",
-  },
-  {
-    icon: FileDown,
-    title: "PDF evidence",
-    body: "One click exports a cited, officer-ready PDF: verdict, every declaration, the violations and the raw extracted text.",
-  },
-  {
-    icon: QrCode,
-    title: "Share link + QR",
-    body: "Every report has a permanent link and a QR code that opens the live verdict — printed on the PDF, ready for the pack or the file.",
+    icon: Database,
+    title: "Logged for audit",
+    body: "Every inspection lands in a searchable history with verdict, timestamp and the full per-field result set.",
   },
 ];
 
 function Home() {
   return (
     <div>
-      {/* Hero */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Hero                                                                */}
+      {/* ------------------------------------------------------------------ */}
       <section className="bg-hero-gradient relative overflow-hidden border-b border-border">
         <div
           aria-hidden
@@ -102,7 +125,6 @@ function Home() {
         />
 
         <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[0.95fr_1.05fr]">
-          {/* Globe */}
           <motion.div
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -112,7 +134,6 @@ function Home() {
             <WireGlobe className="mx-auto aspect-square w-full max-w-[26rem]" />
           </motion.div>
 
-          {/* Copy */}
           <div className="order-1 lg:order-2">
             <motion.div
               initial={{ opacity: 0, y: 14 }}
@@ -178,14 +199,32 @@ function Home() {
               </Button>
             </motion.div>
 
+            {/* capability strip */}
+            <motion.ul
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.34 }}
+              className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground"
+            >
+              {[
+                { icon: Layers, label: "Batch up to 8 labels" },
+                { icon: FileDown, label: "Cited PDF report" },
+                { icon: QrCode, label: "Share link + QR" },
+              ].map((c) => (
+                <li key={c.label} className="inline-flex items-center gap-1.5">
+                  <c.icon className="size-4 text-accent" /> {c.label}
+                </li>
+              ))}
+            </motion.ul>
+
             {/* Declaration chips */}
-            <div className="mt-10 flex flex-wrap gap-2">
+            <div className="mt-8 flex flex-wrap gap-2">
               {RULES.map((r, i) => (
                 <motion.span
                   key={r.key}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 + i * 0.06, duration: 0.4 }}
+                  transition={{ delay: 0.4 + i * 0.06, duration: 0.4 }}
                   className="rounded-full border border-border bg-card/70 px-3 py-1.5 font-mono text-[0.68rem] text-muted-foreground backdrop-blur"
                 >
                   {r.ruleRef} · {r.label}
@@ -196,13 +235,15 @@ function Home() {
         </div>
       </section>
 
-      {/* Impact stats */}
+      {/* ------------------------------------------------------------------ */}
+      {/* Impact stats                                                        */}
+      {/* ------------------------------------------------------------------ */}
       <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { value: 7, suffix: "", label: "Mandatory declarations verified per scan" },
             { value: 6, suffix: "s", label: "Average time from photo to verdict" },
-            { value: 60, suffix: "×", label: "Faster than manual inspection (~1 product/min)" },
+            { value: 8, suffix: "×", label: "Labels checked in one batch, one table" },
             { value: 100, suffix: "%", label: "Of checks traceable to a statutory citation" },
           ].map((s, i) => (
             <Reveal key={s.label} delay={i * 0.08}>
@@ -217,8 +258,63 @@ function Home() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="border-y border-border bg-secondary/40 py-20">
+      {/* ------------------------------------------------------------------ */}
+      {/* Feature showcase                                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="relative overflow-hidden border-y border-border bg-secondary/40 py-20">
+        <div
+          aria-hidden
+          className="bg-grid-paper pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(70%_60%_at_50%_0%,black,transparent)]"
+        />
+        <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <Reveal>
+            <p className="eyebrow text-accent">What ships today</p>
+            <h2 className="mt-3 text-4xl sm:text-5xl">From a photo to evidence you can file</h2>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              Not just a verdict on screen. LabelCheck turns each inspection into something an
+              officer can batch, print, share and cite.
+            </p>
+          </Reveal>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            {SHOWCASE.map((f, i) => (
+              <Reveal key={f.title} delay={i * 0.12} className="h-full">
+                <Link
+                  to={f.to}
+                  search={f.search ?? {}}
+                  className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift"
+                >
+                  <div className="relative aspect-[4/3] border-b border-border bg-secondary/50">
+                    <div
+                      aria-hidden
+                      className="bg-grid-paper absolute inset-0 opacity-50 [mask-image:radial-gradient(75%_75%_at_50%_45%,black,transparent)]"
+                    />
+                    <div className="relative h-full">
+                      <f.Art />
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <p className="eyebrow text-accent">{f.eyebrow}</p>
+                    <h3 className="mt-2 text-xl font-semibold">{f.title}</h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {f.body}
+                    </p>
+                    <span className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                      {f.cta}
+                      <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* How it works                                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="py-20">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           <Reveal>
             <h2 className="text-4xl sm:text-5xl">How it works</h2>
@@ -258,31 +354,37 @@ function Home() {
         </div>
       </section>
 
-      {/* Differentiators */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6">
-        <Reveal>
-          <h2 className="text-4xl sm:text-5xl">Designed to survive scrutiny</h2>
-          <p className="mt-3 max-w-2xl text-muted-foreground">
-            Compliance tooling is only useful if an inspector can defend its output. Every part of
-            LabelCheck is transparent and correctable.
-          </p>
-        </Reveal>
+      {/* ------------------------------------------------------------------ */}
+      {/* Differentiators                                                     */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="border-t border-border bg-secondary/40 py-20">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <Reveal>
+            <h2 className="text-4xl sm:text-5xl">Designed to survive scrutiny</h2>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              Compliance tooling is only useful if an inspector can defend its output. Every part of
+              LabelCheck is transparent and correctable.
+            </p>
+          </Reveal>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {DIFFERENTIATORS.map((d, i) => (
-            <Reveal key={d.title} delay={i * 0.08}>
-              <div className="h-full rounded-2xl border border-border bg-card p-6 shadow-soft">
-                <d.icon className="size-6 text-accent" />
-                <h3 className="mt-4 font-semibold">{d.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d.body}</p>
-              </div>
-            </Reveal>
-          ))}
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {DIFFERENTIATORS.map((d, i) => (
+              <Reveal key={d.title} delay={i * 0.08}>
+                <div className="h-full rounded-2xl border border-border bg-card p-6 shadow-soft">
+                  <d.icon className="size-6 text-accent" />
+                  <h3 className="mt-4 font-semibold">{d.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d.body}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto w-full max-w-6xl px-4 pb-4 sm:px-6">
+      {/* ------------------------------------------------------------------ */}
+      {/* CTA                                                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="mx-auto w-full max-w-6xl px-4 pb-4 pt-20 sm:px-6">
         <Reveal>
           <div className="bg-primary-gradient relative overflow-hidden rounded-3xl px-6 py-14 text-center shadow-lift sm:px-12">
             <h2 className="text-4xl text-primary-foreground sm:text-4xl">
