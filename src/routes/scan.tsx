@@ -339,11 +339,11 @@ function ScanPage() {
 
           <div className="rounded-2xl border border-accent/40 bg-accent/10 p-5">
             <div className="flex items-center gap-2">
-              <FlaskConical className="size-4 text-accent-foreground" />
-              <p className="text-sm font-semibold text-accent-foreground">Demo Mode</p>
+              <FlaskConical className="size-4 text-accent" />
+              <p className="text-sm font-semibold text-accent">Demo Mode</p>
             </div>
-            <p className="mt-1 text-xs text-accent-foreground/80">
-              Run a pre-set sample label — no upload, no network needed.
+            <p className="mt-1 text-xs text-muted-foreground">
+              Run a pre-set sample label — no photo or OCR needed, same result every time.
             </p>
             <div className="mt-4 space-y-2">
               {DEMO_LABELS.map((d) => (
