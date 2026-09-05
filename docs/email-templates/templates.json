@@ -1,0 +1,26 @@
+{
+  "confirm-signup": {
+    "dashboard": "Confirm signup",
+    "subject": "Confirm your LabelCheck account"
+  },
+  "invite-user": {
+    "dashboard": "Invite user",
+    "subject": "You've been invited to LabelCheck"
+  },
+  "magic-link": {
+    "dashboard": "Magic Link",
+    "subject": "Your LabelCheck sign-in link"
+  },
+  "change-email": {
+    "dashboard": "Change Email Address",
+    "subject": "Confirm your new LabelCheck e-mail"
+  },
+  "reset-password": {
+    "dashboard": "Reset Password",
+    "subject": "Reset your LabelCheck password"
+  },
+  "reauthentication": {
+    "dashboard": "Reauthentication",
+    "subject": "Your LabelCheck verification code"
+  }
+}
