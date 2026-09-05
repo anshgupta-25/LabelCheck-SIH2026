@@ -30,8 +30,8 @@ labelcheck/
 │   ├── routes/                 # file-based routing — one file per URL
 │   │   ├── __root.tsx          # shell: head tags, navbar, footer, toaster
 │   │   ├── index.tsx           # /
-│   │   ├── scan.tsx            # /scan
-│   │   ├── batch.tsx           # /batch
+│   │   ├── scan.tsx            # /scan — single or batch (up to 8) + Demo Mode
+│   │   ├── batch.tsx           # /batch → redirects to /scan
 │   │   ├── report.$id.tsx      # /report/:id
 │   │   ├── history.tsx         # /history
 │   │   ├── how-it-works.tsx    # /how-it-works
