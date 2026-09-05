@@ -23,24 +23,22 @@ npm install
 Copy `.env.example` to `.env` and fill in the values:
 
 ```sh
-# Supabase — Project settings → API
+# Supabase - Project settings -> API (browser copy + server copy, same values)
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
-VITE_SUPABASE_PROJECT_ID=<project-ref>
-
-# Same values, server-side (SSR + server functions)
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=<publishable-key>
-SUPABASE_PROJECT_ID=<project-ref>
 
-# OCR — any OpenAI-compatible vision model; Gemini by default
+# OCR - any OpenAI-compatible vision model (OpenAI shown; Gemini block in .env.example)
 OCR_API_KEY=<api-key>
+OCR_API_URL=https://api.openai.com/v1/chat/completions
+OCR_MODEL=gpt-4.1-mini
 ```
 
 `OCR_API_KEY` is read only inside the OCR server function, so it never reaches
-the browser. With only the key set, the app uses Google Gemini. To use OpenAI
-(or OpenRouter, Groq…), also set `OCR_API_URL` and `OCR_MODEL` — ready-made
-blocks are in `.env.example`.
+the browser. `OCR_API_URL` and `OCR_MODEL` choose the provider; if you omit them
+the app defaults to Google Gemini. Any OpenAI-compatible endpoint (OpenRouter,
+Groq…) works the same way.
 
 Vite reads `.env` once at startup — restart `npm run dev` after changing it.
 

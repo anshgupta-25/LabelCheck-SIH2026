@@ -38,7 +38,7 @@ export const extractLabelText = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
     // Read inside the handler so the value is taken from the running server's env.
-    const apiKey = process.env["OCR_API_KEY"] || process.env["GEMINI_API_KEY"];
+    const apiKey = process.env["OCR_API_KEY"];
     if (!apiKey) {
       throw new Error("Text extraction is not configured: set OCR_API_KEY on the server.");
     }
