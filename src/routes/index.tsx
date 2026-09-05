@@ -205,7 +205,6 @@ function Home() {
         </div>
       </section>
 
-
       {/* How it works */}
       <section className="border-y border-border bg-secondary/40 py-20">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
@@ -225,9 +224,7 @@ function Home() {
                     <span className="bg-primary-gradient flex size-11 items-center justify-center rounded-xl text-primary-foreground">
                       <step.icon className="size-5" />
                     </span>
-                    <span className="eyebrow text-muted-foreground">
-                      Step {i + 1}
-                    </span>
+                    <span className="eyebrow text-muted-foreground">Step {i + 1}</span>
                   </div>
                   <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>

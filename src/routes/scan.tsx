@@ -134,7 +134,9 @@ function ScanPage() {
       setStage(1);
       const { text } = await extractLabelText({ data: { imageDataUrl: dataUrl, language } });
       if (!text.trim()) {
-        throw new Error("No text could be read from that photo. Try better lighting or a closer shot.");
+        throw new Error(
+          "No text could be read from that photo. Try better lighting or a closer shot.",
+        );
       }
 
       setStage(2);

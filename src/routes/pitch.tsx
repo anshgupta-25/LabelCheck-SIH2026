@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Deck } from "@/components/pitch/Deck";
 
-
 export const Route = createFileRoute("/pitch")({
   head: () => ({
     meta: [
@@ -65,7 +64,6 @@ function PitchPage() {
       >
         <Deck fullscreenRef={fullscreenRef} />
       </motion.div>
-
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {[

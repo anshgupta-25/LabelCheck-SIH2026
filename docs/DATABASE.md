@@ -8,7 +8,8 @@ supabase/
 ├── config.toml                    # project reference id
 └── migrations/                    # ordered, immutable SQL history
     ├── 20260902065421_...sql      # scans table + grants + RLS + policies + index
-    └── 20260902065449_...sql      # storage policies for the label-images bucket
+    ├── 20260902065449_...sql      # storage policies for the label-images bucket
+    └── 20260905103000_...sql      # creates the private label-images bucket
 ```
 
 ---
@@ -23,9 +24,9 @@ supabase/
 4. **Every `CREATE TABLE` in `public` ships its `GRANT`s in the same file.**
    Row-level security alone is not enough; without grants the Data API returns
    a permission error.
-5. **Buckets are not created in SQL.** Create the bucket through the platform,
-   then commit its `storage.objects` policies as a migration (that is exactly
-   what the second migration above does).
+5. **Buckets are created in SQL too.** Insert into `storage.buckets` and commit
+   the matching `storage.objects` policies as migrations (see the second and
+   third migrations above), so a fresh project needs no manual dashboard steps.
 
 ## The required order inside a migration
 
@@ -78,13 +79,12 @@ URL. Insert and select policies on `storage.objects` are scoped to
 
 ## Adding a future migration
 
-1. Make the change through the platform's migration flow (preferred — it
-   applies the SQL and regenerates `src/integrations/supabase/types.ts`).
-2. Confirm the new `.sql` file landed in `supabase/migrations/` and commit it
-   **together with** the regenerated `types.ts`.
-3. Never hand-edit `src/integrations/supabase/types.ts` — it is generated.
+1. Write the SQL in a new timestamped file under `supabase/migrations/`.
+2. Apply it to the project (CLI below, or paste into the dashboard SQL editor).
+3. Regenerate `src/integrations/supabase/types.ts` and commit it **together
+   with** the migration. Never hand-edit `types.ts` — it is generated.
 
-If you apply SQL manually with the Supabase CLI instead:
+With the Supabase CLI:
 
 ```sh
 supabase link --project-ref <project-ref>
@@ -103,13 +103,11 @@ supabase link --project-ref <new-ref>
 # 2. apply the full history in order
 supabase db push
 
-# 3. create the private storage bucket named exactly: label-images
+# 3. set the env vars from .env.example to the new project's values
 
-# 4. set the env vars from .env.example to the new project's values
-
-# 5. regenerate types and run
+# 4. regenerate types and run
 supabase gen types typescript --linked > src/integrations/supabase/types.ts
-bun run dev
+npm run dev
 ```
 
 Nothing else is required — there is no seed data the app depends on, because
@@ -124,4 +122,4 @@ Demo Mode is entirely hardcoded in `src/lib/demo-labels.ts`.
 - [ ] Defaults / `NOT NULL` chosen so existing inserts keep working
 - [ ] Time-dependent rules use triggers, not `CHECK` constraints
 - [ ] Regenerated `types.ts` committed in the same change
-- [ ] App still builds: `bun run build`
+- [ ] App still builds: `npm run build`

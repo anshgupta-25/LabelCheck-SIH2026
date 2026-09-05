@@ -154,10 +154,11 @@ function HowItWorks() {
               establishes the national standards of weights and measures and empowers the Central
               Government to regulate pre-packaged commodities. The{" "}
               <span className="font-semibold text-foreground">{LEGAL_BASIS.rules}</span> operate
-              under that Act; <span className="font-semibold text-foreground">{LEGAL_BASIS.clause}</span>{" "}
-              lists the declarations that must appear on every retail package. Chapter II further
-              governs the manner of declaration — the size, prominence and placement of the text on
-              the principal display panel.
+              under that Act;{" "}
+              <span className="font-semibold text-foreground">{LEGAL_BASIS.clause}</span> lists the
+              declarations that must appear on every retail package. Chapter II further governs the
+              manner of declaration — the size, prominence and placement of the text on the
+              principal display panel.
             </p>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
               LabelCheck reports the presence and content of each declaration and cites the clause

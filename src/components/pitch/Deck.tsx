@@ -31,13 +31,7 @@ function Kicker({ children }: { children: ReactNode }) {
   return <p className="eyebrow text-accent">{children}</p>;
 }
 
-function Card({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
@@ -67,8 +61,8 @@ function SlideTitle() {
       <div className="relative">
         <Kicker>Smart India Hackathon 2026</Kicker>
         <h2 className="mt-3 max-w-4xl text-3xl leading-[1.05] sm:text-5xl lg:text-6xl">
-          LabelCheck — <span className="text-gradient">AI-Powered</span> Legal Metrology
-          Compliance Scanner
+          LabelCheck — <span className="text-gradient">AI-Powered</span> Legal Metrology Compliance
+          Scanner
         </h2>
         <p className="mt-4 text-base text-muted-foreground sm:text-xl">
           Scan a label. Verify compliance in seconds.
@@ -99,7 +93,6 @@ function SlideTitle() {
             ))}
           </div>
         </div>
-
       </div>
     </Slide>
   );
@@ -145,7 +138,11 @@ function SlideSolution() {
   const steps = [
     { icon: Camera, t: "Photo", d: "Capture the principal display panel on any phone." },
     { icon: Cpu, t: "AI Analysis", d: "OCR extracts text; the rule engine checks each field." },
-    { icon: FileCheck2, t: "Compliance Report", d: "Missing fields flagged with the exact rule cited." },
+    {
+      icon: FileCheck2,
+      t: "Compliance Report",
+      d: "Missing fields flagged with the exact rule cited.",
+    },
   ];
   return (
     <Slide>
@@ -213,9 +210,9 @@ function SlideArchitecture() {
         <Card>
           <p className="eyebrow text-muted-foreground">Stack</p>
           <ul className="mt-3 space-y-2 text-xs text-muted-foreground sm:text-sm">
-            <li>React / Next.js front end</li>
-            <li>Supabase — backend, auth &amp; image storage</li>
-            <li>OCR.space API for text extraction</li>
+            <li>React 19 + TanStack Start (SSR) front end</li>
+            <li>Supabase — Postgres audit log &amp; private image storage</li>
+            <li>Gemini vision model for text extraction, key held server-side</li>
             <li>Modular regex rule engine (Rule 6)</li>
           </ul>
         </Card>
@@ -282,8 +279,16 @@ function SlideImpact() {
       <h2 className="mt-2 text-2xl sm:text-4xl">From one per minute to seconds</h2>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
         {[
-          { icon: Users, t: "Legal Metrology officers", d: "Scalable, evidence-backed enforcement." },
-          { icon: ShoppingCart, t: "E-commerce platforms", d: "Pre-listing compliance checks at scale." },
+          {
+            icon: Users,
+            t: "Legal Metrology officers",
+            d: "Scalable, evidence-backed enforcement.",
+          },
+          {
+            icon: ShoppingCart,
+            t: "E-commerce platforms",
+            d: "Pre-listing compliance checks at scale.",
+          },
           { icon: Eye, t: "Consumers", d: "Self-verify any pack before buying." },
         ].map((x) => (
           <Card key={x.t}>
@@ -327,11 +332,7 @@ const SLIDES = [
 
 /* ---------------------------------- deck --------------------------------- */
 
-export function Deck({
-  fullscreenRef,
-}: {
-  fullscreenRef?: { current: (() => void) | null };
-}) {
+export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void) | null } }) {
   const [index, setIndex] = useState(0);
   const [dir, setDir] = useState(1);
   const [isFs, setIsFs] = useState(false);
@@ -431,11 +432,7 @@ export function Deck({
             >
               <ChevronLeft className="size-4" /> Prev
             </Button>
-            <Button
-              size="sm"
-              onClick={() => go(index + 1)}
-              disabled={index === SLIDES.length - 1}
-            >
+            <Button size="sm" onClick={() => go(index + 1)} disabled={index === SLIDES.length - 1}>
               Next <ChevronRight className="size-4" />
             </Button>
             <Button size="sm" variant="ghost" onClick={toggleFullscreen}>

@@ -11,10 +11,9 @@ meets India's Legal Metrology (Packaged Commodities) Rules, 2011.
 
 Smart India Hackathon 2026 · Problem statement **SIH26034** · Ministry of Consumer Affairs
 
-[Live app](https://legal-label-scan.lovable.app) ·
-[Pitch deck](https://legal-label-scan.lovable.app/pitch) ·
 [Docs](./docs/README.md) ·
-[Judges Q&A](./docs/JUDGES-QA.md)
+[Judges Q&A](./docs/JUDGES-QA.md) ·
+[Demo script](./docs/DEMO-SCRIPT.md)
 
 </div>
 
@@ -83,8 +82,9 @@ See [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 ## Quick start
 
 ```sh
-bun install
-bun run dev     # http://localhost:8080
+npm install
+cp .env.example .env   # fill in Supabase + Gemini values
+npm run dev            # http://localhost:8080
 ```
 
 Environment variables and deployment: [SETUP.md](./docs/SETUP.md).
@@ -93,9 +93,9 @@ Schema and migrations: [DATABASE.md](./docs/DATABASE.md).
 
 ## Tech stack
 
-React 19 · TanStack Start & Router · Vite 7 · Tailwind CSS v4 · Motion ·
-managed Postgres + private object storage · vision-model OCR behind a server
-function · a modular, well-commented rule engine in TypeScript.
+React 19 · TanStack Start & Router · Vite 8 · Tailwind CSS v4 · Motion ·
+Supabase (Postgres + private storage) · Google Gemini vision OCR behind a
+server function · a modular, well-commented rule engine in TypeScript.
 
 ## Roadmap
 

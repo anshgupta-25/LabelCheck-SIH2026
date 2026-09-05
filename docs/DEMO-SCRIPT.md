@@ -30,7 +30,7 @@ Rehearse out loud, as a team, at least twice. Confidence beats slides.
 - **No internet:** stay entirely in Demo Mode — both presets are hardcoded.
 - **Live upload misreads:** that's the point — show the confidence drop and the
   manual correction flow.
-- **App won't load:** present from the PDF deck in `/mnt/documents`.
+- **App won't load:** open `/pitch` on a second device, or present from an exported PDF of the deck.
 
 ## Deck to-do before judging
 

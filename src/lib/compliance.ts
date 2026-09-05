@@ -149,7 +149,9 @@ function isPlausibleDate(value: string | null): boolean {
   const v = value.toLowerCase();
   const maxYear = new Date().getFullYear() + 1;
 
-  const named = new RegExp(`\\b(${MONTH_NAMES.join("|")})[a-z]*[\\s.\\-\\/]*((?:19|20)\\d{2})\\b`).exec(v);
+  const named = new RegExp(
+    `\\b(${MONTH_NAMES.join("|")})[a-z]*[\\s.\\-\\/]*((?:19|20)\\d{2})\\b`,
+  ).exec(v);
   if (named) {
     const year = Number(named[2]);
     return year >= 1990 && year <= maxYear;
@@ -164,7 +166,6 @@ function isPlausibleDate(value: string | null): boolean {
   }
   return false;
 }
-
 
 /* ------------------------------------------------------------------ */
 /* Rule definitions — Rule 6(1)(a) … 6(1)(g)                           */
@@ -229,8 +230,9 @@ export const RULES: RuleDefinition[] = [
       "Rule 6(1)(b): The common or generic name of the commodity is not declared. A brand name by itself does not satisfy this requirement.",
     critical: true,
     detect: (text) => {
-      const explicit =
-        /(?:product|commodity|generic|common)\s*name\s*[:\-]\s*([^\n]{2,60})/i.exec(text);
+      const explicit = /(?:product|commodity|generic|common)\s*name\s*[:\-]\s*([^\n]{2,60})/i.exec(
+        text,
+      );
       if (explicit) {
         const value = (explicit[1] || "").trim();
         if (isMeaningful(value, 3)) {
@@ -324,7 +326,11 @@ export const RULES: RuleDefinition[] = [
           strength: 0.8,
           name: "month-name + year",
         },
-        { re: /\b(0?[1-9]|1[0-2])[\/\-.](20\d{2}|\d{2})\b/, strength: 0.7, name: "MM/YYYY pattern" },
+        {
+          re: /\b(0?[1-9]|1[0-2])[\/\-.](20\d{2}|\d{2})\b/,
+          strength: 0.7,
+          name: "MM/YYYY pattern",
+        },
       ]);
       if (!outcome.found) return outcome;
       return isPlausibleDate(outcome.value) ? outcome : invalid();
@@ -534,11 +540,7 @@ export function finaliseReport(input: FieldResult[], ocrQuality: number): Compli
 }
 
 /** Applies a manual correction from the report UI and re-derives the verdict. */
-export function applyCorrection(
-  fields: FieldResult[],
-  key: RuleKey,
-  value: string,
-): FieldResult[] {
+export function applyCorrection(fields: FieldResult[], key: RuleKey, value: string): FieldResult[] {
   return fields.map((f) => {
     if (f.key !== key) return f;
     const trimmed = value.trim();

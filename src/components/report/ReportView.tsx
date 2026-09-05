@@ -14,17 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   applyCorrection,
   finaliseReport,
@@ -76,11 +67,7 @@ export function ReportView({ fields, rawText, imageUrl, ocrQuality = 0.8, onFiel
               transition={{ delay: 0.15, type: "spring", stiffness: 220, damping: 14 }}
               className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-background/70"
             >
-              {compliant ? (
-                <ShieldCheck className="size-8" />
-              ) : (
-                <ShieldAlert className="size-8" />
-              )}
+              {compliant ? <ShieldCheck className="size-8" /> : <ShieldAlert className="size-8" />}
             </motion.span>
             <div className="min-w-0">
               <p className="font-display text-3xl tracking-tight sm:text-3xl">

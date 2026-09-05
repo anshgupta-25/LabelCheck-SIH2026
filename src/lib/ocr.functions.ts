@@ -1,11 +1,14 @@
 /**
  * OCR / text-extraction server function.
  *
- * The image never touches the browser's network beyond this same-origin call:
- * the model credential lives server-side only. We use a vision-capable model
- * through the Lovable AI Gateway instead of a classic OCR API because packaging
- * text is curved, glossy and multi-script — a vision model transcribes Devanagari
- * and Latin script in a single pass and copes with glare far better.
+ * Runs on the server so the model key never reaches the browser. We use a
+ * vision-capable model instead of a classic OCR API because packaging text is
+ * curved, glossy and multi-script — a vision model transcribes Devanagari and
+ * Latin script in a single pass and copes with glare far better.
+ *
+ * Provider: Google Gemini through its OpenAI-compatible endpoint by default.
+ * Any other OpenAI-compatible chat-completions API (OpenAI, OpenRouter, Groq…)
+ * can be used by overriding OCR_API_URL and OCR_MODEL.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -28,22 +31,29 @@ Keep numbers, units, currency symbols (₹), dates and punctuation exactly as pr
 Output the raw transcription only, with no commentary.`,
 };
 
+const DEFAULT_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
 export const extractLabelText = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => inputSchema.parse(data))
   .handler(async ({ data }) => {
-    const apiKey = process.env["LOVABLE_API_KEY"];
+    // Read inside the handler so the value is taken from the running server's env.
+    const apiKey = process.env["GEMINI_API_KEY"];
     if (!apiKey) {
-      throw new Error("Text extraction is not configured on this deployment.");
+      throw new Error("Text extraction is not configured: set GEMINI_API_KEY on the server.");
     }
+    const apiUrl = process.env["OCR_API_URL"] || DEFAULT_API_URL;
+    const model = process.env["OCR_MODEL"] || DEFAULT_MODEL;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.7-flash",
+        model,
+        temperature: 0,
         messages: [
           {
             role: "user",
@@ -58,14 +68,16 @@ export const extractLabelText = createServerFn({ method: "POST" })
 
     if (!response.ok) {
       const body = await response.text();
-      console.error(`[LabelCheck OCR] gateway ${response.status}: ${body}`);
+      console.error(`[LabelCheck OCR] ${model} @ ${apiUrl} → ${response.status}: ${body}`);
       if (response.status === 429) {
         throw new Error("Too many scans right now — please wait a few seconds and try again.");
       }
-      if (response.status === 402) {
-        throw new Error("AI credits are exhausted for this workspace. Add credits to keep scanning.");
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("The OCR API key was rejected. Check GEMINI_API_KEY on the server.");
       }
-      throw new Error(`Text extraction failed (${response.status}). Please retry with a clearer photo.`);
+      throw new Error(
+        `Text extraction failed (${response.status}). Please retry with a clearer photo.`,
+      );
     }
 
     const payload = (await response.json()) as {

@@ -46,10 +46,7 @@ export function CountUp({
     if (inView) motionValue.set(value);
   }, [inView, value, motionValue]);
 
-  useEffect(
-    () => spring.on("change", (v) => setDisplay(v.toFixed(decimals))),
-    [spring, decimals],
-  );
+  useEffect(() => spring.on("change", (v) => setDisplay(v.toFixed(decimals))), [spring, decimals]);
 
   return (
     <span ref={ref} className="tabular-nums">
