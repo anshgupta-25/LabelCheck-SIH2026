@@ -3,14 +3,15 @@
  * value statement on the left, the form on the right. Also exports the shared
  * Google button and divider so both pages stay identical.
  */
-import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { ScanLine, ShieldCheck, Layers, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WireGlobe } from "@/components/site/WireGlobe";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const POINTS = [
   { icon: ShieldCheck, text: "Cited Rule 6 verdicts in seconds" },
@@ -137,10 +138,52 @@ export function carryNext(next: string | undefined): string | undefined {
   return safe === "" ? undefined : safe;
 }
 
-export function GoogleButton({ next, label }: { next: string; label: string }) {
-  const [pending, setPending] = useState(false);
+/** The parts of Google Identity Services we rely on. */
+interface GoogleIdentity {
+  accounts?: {
+    id?: {
+      initialize: (config: {
+        client_id: string;
+        callback: (response: { credential?: string }) => void;
+        auto_select?: boolean;
+        cancel_on_tap_outside?: boolean;
+      }) => void;
+      renderButton: (
+        parent: HTMLElement,
+        options: {
+          type?: string;
+          theme?: string;
+          size?: string;
+          shape?: string;
+          text?: string;
+          width?: number;
+        },
+      ) => void;
+    };
+  };
+}
 
-  async function go() {
+/**
+ * Google sign-in.
+ *
+ * Preferred path: Google Identity Services renders its own button on *our*
+ * origin and hands back an ID token, which Supabase verifies against the
+ * client id. The browser never travels to <ref>.supabase.co, so Google's
+ * consent UI shows "LabelCheck" and our logo instead of the project id.
+ *
+ * Fallback: if the Google script is blocked (ad blockers, strict privacy
+ * modes) or the token is refused, we drop back to the redirect flow. That
+ * always works, it just shows the Supabase domain.
+ */
+export function GoogleButton({ next, label }: { next: string; label: string }) {
+  const clientId = import.meta.env["VITE_GOOGLE_CLIENT_ID"] as string | undefined;
+  const navigate = useNavigate();
+  const slot = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(false);
+  const [gisReady, setGisReady] = useState(false);
+
+  /** The original redirect flow, kept as a safety net. */
+  const redirectFlow = useCallback(async () => {
     setPending(true);
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOAuth({
@@ -148,9 +191,6 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
       options: { redirectTo, queryParams: { prompt: "select_account" } },
     });
     if (error) {
-      // Until the provider is configured in Supabase this reads
-      // "Unsupported provider: provider is not enabled", which means nothing
-      // to a visitor.
       const notConfigured = /provider is not enabled|unsupported provider/i.test(error.message);
       toast.error(
         notConfigured
@@ -160,19 +200,104 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
       setPending(false);
     }
     // On success the browser navigates away to Google.
-  }
+  }, [next]);
+
+  const onCredential = useCallback(
+    async (response: { credential?: string }) => {
+      if (!response.credential) return;
+      setPending(true);
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: response.credential,
+      });
+      if (error) {
+        // Never dead-end the user: hand them to the flow that always works.
+        console.warn("[LabelCheck] ID-token sign-in failed, falling back:", error.message);
+        void redirectFlow();
+        return;
+      }
+      await navigate({ href: next, replace: true });
+    },
+    [navigate, next, redirectFlow],
+  );
+
+  useEffect(() => {
+    if (!clientId) return;
+    let cancelled = false;
+
+    const init = () => {
+      const gsi = (window as unknown as { google?: GoogleIdentity }).google;
+      const parent = slot.current;
+      if (cancelled || !gsi?.accounts?.id || !parent) return;
+      try {
+        gsi.accounts.id.initialize({
+          client_id: clientId,
+          callback: (r) => void onCredential(r),
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        parent.replaceChildren();
+        gsi.accounts.id.renderButton(parent, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: /sign up/i.test(label) ? "signup_with" : "continue_with",
+          width: Math.min(Math.max(parent.offsetWidth || 360, 200), 400),
+        });
+        setGisReady(true);
+      } catch {
+        setGisReady(false);
+      }
+    };
+
+    const existing = document.querySelector<HTMLScriptElement>("script[data-gsi]");
+    if (existing) {
+      if (existing.dataset["loaded"]) init();
+      else existing.addEventListener("load", init, { once: true });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.dataset["gsi"] = "true";
+    script.addEventListener("load", () => {
+      script.dataset["loaded"] = "true";
+      init();
+    });
+    // Blocked or offline: the custom button below stays and uses the redirect.
+    script.addEventListener("error", () => setGisReady(false));
+    document.head.appendChild(script);
+    return () => {
+      cancelled = true;
+    };
+  }, [clientId, label, onCredential]);
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      className="h-12 w-full gap-3 text-base"
-      onClick={go}
-      disabled={pending}
-    >
-      {pending ? <Loader2 className="size-5 animate-spin" /> : <GoogleMark />}
-      {label}
-    </Button>
+    <div className="w-full">
+      {/* Google renders its own button here. It must sit on our origin for the
+          consent screen to carry our name and logo. */}
+      <div
+        ref={slot}
+        className={cn("flex w-full justify-center", (!gisReady || pending) && "hidden")}
+      />
+      {(!gisReady || pending) && (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full gap-3 text-base"
+          onClick={redirectFlow}
+          disabled={pending}
+        >
+          {pending ? <Loader2 className="size-5 animate-spin" /> : <GoogleMark />}
+          {label}
+        </Button>
+      )}
+    </div>
   );
 }
 

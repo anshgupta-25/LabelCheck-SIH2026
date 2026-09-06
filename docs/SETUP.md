@@ -152,3 +152,25 @@ script can also set `AUTH_SITE_URL`, `AUTH_REDIRECT_URLS`, `AUTH_AUTOCONFIRM`,
 password. Add `https://sih.anshguptaa.in/reset-password` and
 `http://localhost:8080/reset-password` to the redirect allow-list if you use a
 strict list instead of the `/**` wildcards from section 8.
+
+### Google sign-in without the Supabase domain
+
+Google names the domain a user is redirected to, so the plain OAuth redirect
+flow shows `<project-ref>.supabase.co` on the consent screen. To show
+**LabelCheck** and the app logo instead, the app uses Google Identity Services:
+Google's own button is rendered on our origin and returns an ID token, which
+Supabase verifies with `signInWithIdToken`. The browser never leaves our domain.
+
+Requirements:
+
+- `VITE_GOOGLE_CLIENT_ID` — the OAuth **client id** (public; safe in the client
+  bundle). The client **secret** must never be added here; it belongs only in
+  the Supabase provider settings.
+- Google Cloud → the app's **Authorized JavaScript origins** must list every
+  origin the button renders on (`https://sih.anshguptaa.in`, `http://localhost:8080`).
+- Supabase → Authentication → Providers → Google: keep the client id registered
+  (used to check the token's audience) and enable **Skip nonce check**, since the
+  rendered button issues tokens without a nonce.
+
+If the Google script is blocked, or the token is refused, the component falls
+back to the old redirect flow automatically, so sign-in never dead-ends.
