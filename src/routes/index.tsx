@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Reveal, CountUp } from "@/components/site/Reveal";
 import { WireGlobe } from "@/components/site/WireGlobe";
+import { GlobeCallouts } from "@/components/site/GlobeCallouts";
 import { BatchArt, ReportArt, ShareArt } from "@/components/site/FeatureArt";
 import { GlowCard, IconTile } from "@/components/site/GlowCard";
 import { Objections } from "@/components/site/Objections";
@@ -206,7 +207,10 @@ function Home() {
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="relative order-2 lg:order-1"
           >
-            <WireGlobe className="mx-auto aspect-square w-full max-w-[26rem]" />
+            <div className="relative mx-auto aspect-square w-full max-w-[26rem] lg:-translate-x-10">
+              <WireGlobe className="size-full" />
+              <GlobeCallouts />
+            </div>
           </motion.div>
 
           <div className="order-1 lg:order-2">
