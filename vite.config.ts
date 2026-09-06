@@ -7,6 +7,12 @@ import { nitro } from "nitro/vite";
 
 export default defineConfig(({ command }) => ({
   server: { port: 8080, host: true },
+  optimizeDeps: {
+    // pptxgenjs (the deck exporter) imports jszip, whose UMD bundle exposes no
+    // ESM default export. Without pre-bundling, the dynamic import throws
+    // "does not provide an export named 'default'" and the PPTX download dies.
+    include: ["pptxgenjs", "jszip"],
+  },
   resolve: {
     // One copy of React / Query in the bundle, even if a dependency ships its own.
     dedupe: [

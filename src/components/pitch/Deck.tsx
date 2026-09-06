@@ -1,341 +1,125 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  ArrowRight,
-  Camera,
-  ChevronLeft,
-  ChevronRight,
-  Cpu,
-  Database,
-  Eye,
-  FileCheck2,
-  Gauge,
-  Languages,
-  Layers,
-  Maximize2,
-  Minimize2,
-  PencilLine,
-  Rocket,
-  ScanLine,
-  ShieldCheck,
-  ShoppingCart,
-  Sparkles,
-  Users,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DECK, DECK_META, type Block } from "@/lib/deck-content";
 
-/* ---------------------------------- bits --------------------------------- */
+/* -------------------------------- blocks --------------------------------- */
 
-function Kicker({ children }: { children: ReactNode }) {
-  return <p className="eyebrow text-accent">{children}</p>;
-}
-
-function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border border-border bg-card/80 p-4 shadow-soft backdrop-blur sm:p-5",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Slide({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex h-full w-full flex-col justify-center px-6 py-8 sm:px-12 sm:py-12">
-      {children}
-    </div>
-  );
-}
-
-/* --------------------------------- slides -------------------------------- */
-
-function SlideTitle() {
-  return (
-    <Slide>
-      <div className="bg-grid-paper pointer-events-none absolute inset-0 opacity-[0.35]" />
-      <div className="relative">
-        <Kicker>Smart India Hackathon 2026</Kicker>
-        <h2 className="mt-3 max-w-4xl text-3xl leading-[1.05] sm:text-5xl lg:text-6xl">
-          LabelCheck — <span className="text-gradient">AI-Powered</span> Legal Metrology Compliance
-          Scanner
-        </h2>
-        <p className="mt-4 text-base text-muted-foreground sm:text-xl">
-          Scan a label. Verify compliance in seconds.
+function BlockView({ block }: { block: Block }) {
+  switch (block.kind) {
+    case "lead":
+      return (
+        <p className="max-w-4xl text-sm leading-relaxed text-muted-foreground sm:text-lg">
+          {block.text}
         </p>
-        <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-medium sm:text-sm">
-          <ShieldCheck className="size-4 text-accent" />
-          SIH26034 · Ministry of Consumer Affairs
+      );
+
+    case "note":
+      return (
+        <div className="relative overflow-hidden rounded-xl border border-border bg-secondary/70 p-3 sm:p-4">
+          <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-accent" />
+          <p className="pl-2 text-xs italic leading-relaxed sm:text-sm">{block.text}</p>
         </div>
-        <div className="mt-7 border-t border-border pt-5">
-          <p className="eyebrow text-muted-foreground">Team CodeCatalysts</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-accent sm:text-sm">
-              Team Leader · Ansh Gupta (12402677)
-            </span>
-            {[
-              "Dasari Aarya Nandan",
-              "Archi Data",
-              "Akshaj Kumar",
-              "Bhumi Dwivedi",
-              "Eshan Thakur",
-            ].map((n) => (
-              <span
-                key={n}
-                className="rounded-full border border-border bg-card px-3 py-1 text-xs sm:text-sm"
-              >
-                {n}
-              </span>
-            ))}
-          </div>
+      );
+
+    case "stats":
+      return (
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {block.items.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.06 * i, duration: 0.4 }}
+              className="rounded-2xl border border-border bg-card/80 p-3 shadow-soft backdrop-blur sm:p-4"
+            >
+              <p className="font-display text-2xl text-accent sm:text-4xl">{s.value}</p>
+              <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground sm:text-sm">
+                {s.label}
+              </p>
+            </motion.div>
+          ))}
         </div>
-      </div>
-    </Slide>
-  );
+      );
+
+    case "bullets":
+    case "steps":
+      return (
+        <div
+          className={cn(
+            "grid gap-2.5",
+            block.items.length > 3 ? "sm:grid-cols-2" : "sm:grid-cols-1",
+          )}
+        >
+          {block.items.map((it, i) => (
+            <motion.div
+              key={it.title}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 * i, duration: 0.4 }}
+              className="flex gap-2.5"
+            >
+              <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold sm:text-base">
+                  {block.kind === "steps" && (
+                    <span className="mr-2 font-mono text-[0.65rem] text-accent">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                  )}
+                  {it.title}
+                </p>
+                <p className="mt-0.5 text-[0.72rem] leading-relaxed text-muted-foreground sm:text-sm">
+                  {it.body}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      );
+
+    case "table":
+      return (
+        <div className="overflow-x-auto rounded-xl border border-border bg-card/80 backdrop-blur">
+          <table className="w-full min-w-[36rem] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border">
+                {block.head.map((h) => (
+                  <th
+                    key={h}
+                    className="eyebrow px-3 py-2 text-[0.6rem] text-accent sm:px-4 sm:text-[0.68rem]"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, r) => (
+                <tr key={r} className="border-b border-border/60 last:border-b-0">
+                  {row.map((c, i) => (
+                    <td
+                      key={i}
+                      className={cn(
+                        "px-3 py-2 align-top text-[0.72rem] leading-relaxed sm:px-4 sm:text-sm",
+                        i === 0 ? "font-semibold" : "text-muted-foreground",
+                      )}
+                    >
+                      {c}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+  }
 }
 
-function SlideProblem() {
-  return (
-    <Slide>
-      <Kicker>01 · The Problem</Kicker>
-      <h2 className="mt-2 text-2xl sm:text-4xl">Compliance is checked one package at a time</h2>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <Layers className="size-5 text-accent" />
-          <p className="mt-3 text-3xl font-semibold sm:text-4xl">7</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            mandatory declarations required on every packaged product under the Legal Metrology
-            (Packaged Commodities) Rules, 2011 — MRP, net quantity, manufacture date, manufacturer
-            details and more.
-          </p>
-        </Card>
-        <Card>
-          <Eye className="size-5 text-accent" />
-          <p className="mt-3 text-3xl font-semibold sm:text-4xl">Widespread</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Missing or misleading declarations are common — consumers cannot verify what they are
-            paying for.
-          </p>
-        </Card>
-        <Card>
-          <Gauge className="size-5 text-accent" />
-          <p className="mt-3 text-3xl font-semibold sm:text-4xl">~1/min</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Enforcement is manual. Officers inspect packages individually — impossible to scale
-            across crores of products and exploding e-commerce listings.
-          </p>
-        </Card>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideSolution() {
-  const steps = [
-    { icon: Camera, t: "Photo", d: "Capture the principal display panel on any phone." },
-    { icon: Cpu, t: "AI Analysis", d: "OCR extracts text; the rule engine checks each field." },
-    {
-      icon: FileCheck2,
-      t: "Compliance Report",
-      d: "Missing fields flagged with the exact rule cited, exportable as a PDF.",
-    },
-  ];
-  return (
-    <Slide>
-      <Kicker>02 · Our Solution</Kicker>
-      <h2 className="mt-2 text-2xl sm:text-4xl">
-        Photograph a label, get an instant compliance report
-      </h2>
-      <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        {steps.map((s, i) => (
-          <div key={s.t} className="flex flex-1 items-center gap-3">
-            <Card className="flex-1">
-              <s.icon className="size-5 text-accent" />
-              <p className="mt-2 font-semibold">{s.t}</p>
-              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{s.d}</p>
-            </Card>
-            {i < steps.length - 1 && (
-              <ArrowRight className="hidden size-5 shrink-0 text-accent sm:block" />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="mt-5 grid gap-2 sm:grid-cols-4">
-        {[
-          { icon: Gauge, t: "Per-field confidence" },
-          { icon: PencilLine, t: "Inspector corrections" },
-          { icon: Languages, t: "English + Hindi labels" },
-          { icon: Layers, t: "Batch of 8 labels" },
-          { icon: FileCheck2, t: "Cited PDF report" },
-          { icon: ShieldCheck, t: "Share link + QR code" },
-          { icon: Users, t: "Per-officer audit trail" },
-          { icon: Database, t: "Searchable history" },
-        ].map((x) => (
-          <div
-            key={x.t}
-            className="flex items-center gap-2 rounded-xl border border-border bg-secondary/60 px-3 py-2 text-xs sm:text-sm"
-          >
-            <x.icon className="size-4 text-accent" /> {x.t}
-          </div>
-        ))}
-      </div>
-    </Slide>
-  );
-}
-
-function SlideArchitecture() {
-  const flow = [
-    "Image Upload",
-    "OCR Engine",
-    "Text Extraction",
-    "Rule Engine",
-    "Compliance Report",
-    "Audit Database",
-  ];
-  return (
-    <Slide>
-      <Kicker>03 · Technical Architecture</Kicker>
-      <h2 className="mt-2 text-2xl sm:text-4xl">A simple, auditable pipeline</h2>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        {flow.map((f, i) => (
-          <div key={f} className="flex items-center gap-2">
-            <span className="rounded-xl border border-border bg-card px-3 py-2 font-mono text-[11px] shadow-soft sm:text-xs">
-              {f}
-            </span>
-            {i < flow.length - 1 && <ChevronRight className="size-4 text-accent" />}
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Card>
-          <p className="eyebrow text-muted-foreground">Stack</p>
-          <ul className="mt-3 space-y-2 text-xs text-muted-foreground sm:text-sm">
-            <li>React 19 + TanStack Start (SSR) front end</li>
-            <li>Supabase — Postgres audit log &amp; private image storage</li>
-            <li>Gemini vision model for text extraction, key held server-side</li>
-            <li>Modular regex rule engine (Rule 6)</li>
-          </ul>
-        </Card>
-        <Card>
-          <p className="eyebrow text-muted-foreground">Scales by design</p>
-          <ul className="mt-3 space-y-2 text-xs text-muted-foreground sm:text-sm">
-            <li>
-              <Database className="mr-1 inline size-4 text-accent" />
-              Cloud-native storage &amp; audit trail
-            </li>
-            <li>
-              <Layers className="mr-1 inline size-4 text-accent" />
-              Pluggable rules — new regulations drop in as modules
-            </li>
-            <li>
-              <ScanLine className="mr-1 inline size-4 text-accent" />
-              Stateless scanning, horizontally scalable
-            </li>
-          </ul>
-        </Card>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideFeasibility() {
-  return (
-    <Slide>
-      <Kicker>04 · Feasibility &amp; Innovation</Kicker>
-      <h2 className="mt-2 text-2xl sm:text-4xl">Proven tech, working prototype</h2>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <ShieldCheck className="size-5 text-accent" />
-          <p className="mt-2 font-semibold">Built on accessible tech</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            No exotic hardware — a working prototype is already live and scanning labels today.
-          </p>
-        </Card>
-        <Card>
-          <PencilLine className="size-5 text-accent" />
-          <p className="mt-2 font-semibold">Handles real-world messiness</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Confidence scores and editable fields absorb OCR imperfections; a language selector
-            covers multilingual packs.
-          </p>
-        </Card>
-        <Card>
-          <Sparkles className="size-5 text-accent" />
-          <p className="mt-2 font-semibold">The innovation</p>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            First tool to combine OCR, a codified Legal Metrology rule engine and an
-            officer-friendly workflow: batch checks, cited PDF evidence, QR-linked share links and a
-            per-officer audit trail — transparent end to end.
-          </p>
-        </Card>
-      </div>
-    </Slide>
-  );
-}
-
-function SlideImpact() {
-  return (
-    <Slide>
-      <Kicker>05 · Impact</Kicker>
-      <h2 className="mt-2 text-2xl sm:text-4xl">From one per minute to seconds</h2>
-      <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        {[
-          {
-            icon: Users,
-            t: "Legal Metrology officers",
-            d: "Scalable, evidence-backed enforcement.",
-          },
-          {
-            icon: ShoppingCart,
-            t: "E-commerce platforms",
-            d: "Pre-listing compliance checks at scale.",
-          },
-          { icon: Eye, t: "Consumers", d: "Self-verify any pack before buying." },
-        ].map((x) => (
-          <Card key={x.t}>
-            <x.icon className="size-5 text-accent" />
-            <p className="mt-2 font-semibold">{x.t}</p>
-            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{x.d}</p>
-          </Card>
-        ))}
-      </div>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <span className="eyebrow flex items-center gap-1 text-muted-foreground">
-          <Rocket className="size-4 text-accent" /> Roadmap
-        </span>
-        {[
-          "Regional languages",
-          "Bulk e-commerce scanning",
-          "Mobile inspector app",
-          "Govt system integration",
-        ].map((r) => (
-          <span
-            key={r}
-            className="rounded-full border border-border bg-secondary px-3 py-1 text-xs sm:text-sm"
-          >
-            {r}
-          </span>
-        ))}
-      </div>
-      <p className="mt-6 font-display text-xl sm:text-2xl">CodeCatalysts · SIH 2026.</p>
-    </Slide>
-  );
-}
-
-const SLIDES = [
-  { id: "title", node: <SlideTitle /> },
-  { id: "problem", node: <SlideProblem /> },
-  { id: "solution", node: <SlideSolution /> },
-  { id: "architecture", node: <SlideArchitecture /> },
-  { id: "feasibility", node: <SlideFeasibility /> },
-  { id: "impact", node: <SlideImpact /> },
-];
-
-/* ---------------------------------- deck --------------------------------- */
+/* --------------------------------- deck ---------------------------------- */
 
 export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void) | null } }) {
   const [index, setIndex] = useState(0);
@@ -343,12 +127,29 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
   const [isFs, setIsFs] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
 
-  const go = useCallback((next: number) => {
-    setIndex((cur) => {
-      const clamped = Math.max(0, Math.min(SLIDES.length - 1, next));
-      setDir(clamped >= cur ? 1 : -1);
-      return clamped;
-    });
+  const go = useCallback(
+    (next: number) => {
+      setDir(next > index ? 1 : -1);
+      setIndex(Math.max(0, Math.min(DECK.length - 1, next)));
+    },
+    [index],
+  );
+
+  const toggleFullscreen = useCallback(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void el.requestFullscreen?.();
+  }, []);
+
+  useEffect(() => {
+    if (fullscreenRef) fullscreenRef.current = toggleFullscreen;
+  }, [fullscreenRef, toggleFullscreen]);
+
+  useEffect(() => {
+    const onFs = () => setIsFs(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
   useEffect(() => {
@@ -358,25 +159,12 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [index, go]);
+  }, [go, index]);
 
-  useEffect(() => {
-    const onFs = () => setIsFs(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void shellRef.current?.requestFullscreen?.();
-  }, []);
-
-  useEffect(() => {
-    if (fullscreenRef) fullscreenRef.current = toggleFullscreen;
-  }, [fullscreenRef, toggleFullscreen]);
+  const slide = DECK[index]!;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div
         ref={shellRef}
         className={cn(
@@ -389,9 +177,15 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
           style={isFs ? undefined : { aspectRatio: "16 / 9", minHeight: 380 }}
         >
           <div className="bg-hero-gradient absolute inset-0" />
+          <div
+            aria-hidden
+            className="bg-grid-paper pointer-events-none absolute inset-0 opacity-[0.3]"
+          />
+          <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-accent" />
+
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={SLIDES[index]!.id}
+              key={slide.id}
               initial={{ opacity: 0, x: dir * 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: dir * -40 }}
@@ -405,18 +199,27 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
               }}
               className="absolute inset-0 overflow-y-auto"
             >
-              {SLIDES[index]!.node}
+              <div className="flex min-h-full flex-col gap-3 px-6 py-6 sm:gap-4 sm:px-12 sm:py-9">
+                <p className="eyebrow text-accent">
+                  {slide.no ? `${slide.no} · ` : ""}
+                  {slide.kicker}
+                </p>
+                <h2 className="max-w-5xl text-xl leading-[1.1] sm:text-4xl">{slide.title}</h2>
+                {slide.blocks.map((b, i) => (
+                  <BlockView key={i} block={b} />
+                ))}
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* controls */}
         <div className="relative flex items-center justify-between gap-3 border-t border-border bg-card/90 px-4 py-3 backdrop-blur">
-          <div className="flex gap-1.5">
-            {SLIDES.map((s, i) => (
+          <div className="hidden gap-1.5 sm:flex">
+            {DECK.map((s, i) => (
               <button
                 key={s.id}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={`Go to slide ${i + 1}: ${s.kicker}`}
                 onClick={() => go(i)}
                 className={cn(
                   "h-1.5 rounded-full transition-all",
@@ -427,7 +230,7 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
-              {index + 1} / {SLIDES.length}
+              {index + 1} / {DECK.length}
             </span>
             <Button
               size="sm"
@@ -437,7 +240,7 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
             >
               <ChevronLeft className="size-4" /> Prev
             </Button>
-            <Button size="sm" onClick={() => go(index + 1)} disabled={index === SLIDES.length - 1}>
+            <Button size="sm" onClick={() => go(index + 1)} disabled={index === DECK.length - 1}>
               Next <ChevronRight className="size-4" />
             </Button>
             <Button size="sm" variant="ghost" onClick={toggleFullscreen}>
@@ -447,10 +250,11 @@ export function Deck({ fullscreenRef }: { fullscreenRef?: { current: (() => void
         </div>
       </div>
       <p className="text-center text-xs text-muted-foreground">
-        Use ← → arrow keys, swipe, or the buttons to navigate.
+        {DECK.length} slides · use ← → arrow keys, swipe, or the buttons. Speaker notes ship inside
+        the PPTX. {DECK_META.problemId}
       </p>
     </div>
   );
 }
 
-export { SLIDES };
+export { DECK as SLIDES };

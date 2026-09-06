@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { useRef } from "react";
-import { ArrowLeft, Maximize2, Presentation } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, FileDown, Loader2, Maximize2, Presentation } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Deck } from "@/components/pitch/Deck";
+import { DECK } from "@/lib/deck-content";
 
 export const Route = createFileRoute("/pitch")({
   head: () => ({
@@ -27,6 +29,28 @@ export const Route = createFileRoute("/pitch")({
 
 function PitchPage() {
   const fullscreenRef = useRef<(() => void) | null>(null);
+  // "pdf" | "pptx" while that export is generating; both libraries are loaded
+  // on demand, so the first click has a moment of work to do.
+  const [busy, setBusy] = useState<"pdf" | "pptx" | null>(null);
+
+  async function download(kind: "pdf" | "pptx") {
+    if (busy) return;
+    setBusy(kind);
+    try {
+      const mod = await import("@/lib/deck-export");
+      if (kind === "pdf") await mod.downloadDeckPdf();
+      else await mod.downloadDeckPptx();
+      toast.success(`Deck exported as ${kind.toUpperCase()}`, {
+        description: `${DECK.length} slides${kind === "pptx" ? ", with speaker notes" : ""}.`,
+      });
+    } catch (err) {
+      toast.error("Export failed", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
@@ -41,7 +65,9 @@ function PitchPage() {
         <h1 className="mt-4 text-4xl sm:text-5xl">LabelCheck — SIH 2026 Pitch</h1>
         <p className="mt-3 text-muted-foreground">
           Making every packaged label legally verifiable in seconds — problem statement SIH26034,
-          Ministry of Consumer Affairs.
+          Ministry of Consumer Affairs. {DECK.length} slides covering problem validation, user
+          requirements, architecture, technology choices, the working prototype, test results and
+          impact. Download it as PowerPoint (with speaker notes) or PDF.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
@@ -52,6 +78,22 @@ function PitchPage() {
           </Button>
           <Button onClick={() => fullscreenRef.current?.()}>
             <Maximize2 className="size-4" /> Open in full screen
+          </Button>
+          <Button variant="outline" onClick={() => void download("pptx")} disabled={busy !== null}>
+            {busy === "pptx" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileDown className="size-4" />
+            )}
+            Download PPTX
+          </Button>
+          <Button variant="outline" onClick={() => void download("pdf")} disabled={busy !== null}>
+            {busy === "pdf" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileDown className="size-4" />
+            )}
+            Download PDF
           </Button>
         </div>
       </motion.div>
