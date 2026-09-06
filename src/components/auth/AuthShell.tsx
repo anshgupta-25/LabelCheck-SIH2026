@@ -248,7 +248,21 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
           text: /sign up/i.test(label) ? "signup_with" : "continue_with",
           width: 400,
         });
-        setGisReady(true);
+        // renderButton can fail silently — an origin Google does not accept
+        // leaves an empty container without throwing. Only hand the click over
+        // once Google's button really exists, otherwise the invisible overlay
+        // would swallow every click and nothing would happen at all.
+        window.setTimeout(() => {
+          if (cancelled) return;
+          // Inline on some origins, a cross-origin iframe on others.
+          const rendered = !!parent.querySelector('[role="button"], iframe[src*="gsi/button"]');
+          if (!rendered) {
+            console.warn(
+              "[LabelCheck] Google did not render its button on this origin; using the redirect flow.",
+            );
+          }
+          setGisReady(rendered);
+        }, 600);
       } catch {
         setGisReady(false);
       }
