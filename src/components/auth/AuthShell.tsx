@@ -295,12 +295,20 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
   }, [clientId, label, onCredential]);
 
   return (
-    <div className="relative w-full">
-      {/* Our button, so the page keeps its own look. */}
+    // `group` so the hover state still reads when the pointer is actually over
+    // Google's invisible button on top, not ours.
+    <div className="group relative w-full">
+      {/* Our button, so the page keeps its own look. The outline variant's own
+          hover fills with solid accent, which is far too heavy here — override
+          it with a soft rust tint driven by the group. */}
       <Button
         type="button"
         variant="outline"
-        className="h-12 w-full gap-3 text-base"
+        className={cn(
+          "h-12 w-full gap-3 text-base transition-colors",
+          "hover:border-accent hover:bg-accent/10 hover:text-foreground",
+          "group-hover:border-accent group-hover:bg-accent/10 group-hover:text-foreground",
+        )}
         onClick={redirectFlow}
         disabled={pending}
       >
