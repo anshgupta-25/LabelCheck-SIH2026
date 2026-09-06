@@ -121,7 +121,7 @@ function firstNumber(value: string | null): number | null {
 /** True when a value carries enough real content to count as a declaration. */
 function isMeaningful(value: string | null, minLetters = 3): boolean {
   if (!value) return false;
-  const letters = (value.match(/[A-Za-z\u0900-\u097F]/g) || []).length;
+  const letters = (value.match(/\p{L}/gu) || []).length;
   return value.trim().length >= minLetters && letters >= minLetters;
 }
 
@@ -157,7 +157,7 @@ function isPlausibleDate(value: string | null): boolean {
     return year >= 1990 && year <= maxYear;
   }
 
-  const numeric = /\b(\d{1,2})[\/\-.](\d{2,4})\b/.exec(v);
+  const numeric = /\b(\d{1,2})[/.-](\d{2,4})\b/.exec(v);
   if (numeric) {
     const month = Number(numeric[1]);
     let year = Number(numeric[2]);
@@ -279,7 +279,7 @@ export const RULES: RuleDefinition[] = [
     detect: (text) => {
       // Heuristic 1: an explicit "Manufactured by / Packed by / Marketed by" lead-in.
       const lead =
-        /(manufactured|mfd|mfg|packed|packaged|marketed|imported)\s*(&|and)?\s*(by|by:)?\s*[:\-]?\s*([^\n]{8,140})/i.exec(
+        /(manufactured|mfd|mfg|packed|packaged|marketed|imported)\s*(&|and)?\s*(by|by:)?\s*[:-]?\s*([^\n]{8,140})/i.exec(
           text,
         );
       // Heuristic 2: an Indian postal address signature (PIN code + place words).
@@ -325,7 +325,7 @@ export const RULES: RuleDefinition[] = [
       "Rule 6(1)(b): The common or generic name of the commodity is not declared. A brand name by itself does not satisfy this requirement.",
     critical: true,
     detect: (text) => {
-      const explicit = /(?:product|commodity|generic|common)\s*name\s*[:\-]\s*([^\n]{2,60})/i.exec(
+      const explicit = /(?:product|commodity|generic|common)\s*name\s*[:-]\s*([^\n]{2,60})/i.exec(
         text,
       );
       if (explicit) {
@@ -369,7 +369,7 @@ export const RULES: RuleDefinition[] = [
       // never a valid declaration, so the search continues past it.
       const patterns: { re: RegExp; strength: number; name: string }[] = [
         {
-          re: /net\s*(?:qty|quantity|wt\.?|weight|vol(?:ume)?)?\s*[:\-]?\s*\d+(?:[.,]\d+)?\s*(?:g|gm|gms|gram|grams|kg|kgs|ml|mls|l|ltr|litre|liter|n|u|pcs|pieces)\b/gi,
+          re: /net\s*(?:qty|quantity|wt\.?|weight|vol(?:ume)?)?\s*[:-]?\s*\d+(?:[.,]\d+)?\s*(?:g|gm|gms|gram|grams|kg|kgs|ml|mls|l|ltr|litre|liter|n|u|pcs|pieces)\b/gi,
           strength: 0.98,
           name: "'Net quantity' declaration with unit",
         },
@@ -422,7 +422,7 @@ export const RULES: RuleDefinition[] = [
           name: "month-name + year",
         },
         {
-          re: /\b(0?[1-9]|1[0-2])[\/\-.](20\d{2}|\d{2})\b/,
+          re: /\b(0?[1-9]|1[0-2])[/.-](20\d{2}|\d{2})\b/,
           strength: 0.7,
           name: "MM/YYYY pattern",
         },
@@ -444,7 +444,7 @@ export const RULES: RuleDefinition[] = [
       const inclusive = /incl(?:usive)?\.?\s*(?:of)?\s*all\s*taxes/i.test(text);
       const patterns: { re: RegExp; strength: number; name: string }[] = [
         {
-          re: /(?:m\.?\s*r\.?\s*p\.?|maximum retail price)\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*\d+(?:[.,]\d{1,2})?\s*\/?-?/gi,
+          re: /(?:m\.?\s*r\.?\s*p\.?|maximum retail price)\s*[:-]?\s*(?:₹|rs\.?|inr)?\s*\d+(?:[.,]\d{1,2})?\s*\/?-?/gi,
           strength: 0.98,
           name: "MRP declaration",
         },
@@ -486,7 +486,7 @@ export const RULES: RuleDefinition[] = [
     detect: (text) => {
       const email = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.exec(text);
       const phone =
-        /(?:\+91[\-\s]?)?(?:1800[\-\s]?\d{3}[\-\s]?\d{3,4}|\b[6-9]\d{9}\b|\b\d{3,5}[\-\s]\d{6,8}\b)/.exec(
+        /(?:\+91[\s-]?)?(?:1800[\s-]?\d{3}[\s-]?\d{3,4}|\b[6-9]\d{9}\b|\b\d{3,5}[\s-]\d{6,8}\b)/.exec(
           text,
         );
       const labelled = /(customer|consumer)\s*(care|service|complaints?)/i.test(text);
@@ -528,15 +528,35 @@ export const RULES: RuleDefinition[] = [
       "Rule 6(1)(g): Country of origin is not declared. This is mandatory for imported packages and for e-commerce listings.",
     critical: false,
     detect: (text) => {
-      const explicit = firstMatch(text, [
-        {
-          re: /country\s*of\s*(?:origin|manufacture|assembly)\s*[:\-]?\s*[A-Za-z\u0900-\u097F ]{3,30}/i,
-          strength: 0.99,
-          name: "explicit country of origin declaration",
-        },
-        { re: /भारत\s*में\s*निर्मित/, strength: 0.9, name: "Hindi 'Made in India' declaration" },
-      ]);
-      if (explicit.found) return explicit;
+      // An explicit "Country of origin: X" heading still has to have a real X
+      // after it. Template artwork prints "Country of Origin: Country Name",
+      // which is a placeholder, not a declaration.
+      const explicit =
+        /country\s*of\s*(?:origin|manufacture|assembly)\s*[:-]?\s*([\p{L} ]{3,30})/iu.exec(text);
+      if (explicit) {
+        const named = (explicit[1] || "").trim().replace(/[.,;].*$/, "");
+        // A capitalisation check only means anything for Latin script, so a
+        // name carrying non-ASCII letters (Devanagari today, Tamil and Telugu
+        // next) is accepted on its own.
+        if (looksLikeCountry(named) || /\P{ASCII}/u.test(named)) {
+          return {
+            found: true,
+            value: (explicit[0] || "").trim().replace(/\s+/g, " ").slice(0, 160),
+            strength: 0.99,
+            matchedBy: "explicit country of origin declaration",
+          };
+        }
+      }
+
+      if (/भारत\s*में\s*निर्मित/.test(text)) {
+        const m = /भारत\s*में\s*निर्मित/.exec(text);
+        return {
+          found: true,
+          value: (m?.[0] || "").trim(),
+          strength: 0.9,
+          matchedBy: "Hindi 'Made in India' declaration",
+        };
+      }
 
       // "MADE IN INDIA" is printed in capitals on a large share of Indian packs,
       // so this must be case-insensitive; the country check keeps prose out.
@@ -569,7 +589,7 @@ export const RULES: RuleDefinition[] = [
 export function estimateOcrQuality(text: string): number {
   const t = text.trim();
   if (!t) return 0;
-  const alnum = (t.match(/[a-z0-9\u0900-\u097F]/gi) || []).length;
+  const alnum = (t.match(/[\p{L}\p{N}]/gu) || []).length;
   const ratio = alnum / t.length;
   const lengthScore = Math.min(1, t.length / 220);
   return Math.max(0.35, Math.min(1, 0.45 * lengthScore + 0.55 * ratio));
