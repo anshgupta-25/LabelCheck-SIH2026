@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ScanLine } from "lucide-react";
+import { BrandMark } from "@/components/site/BrandMark";
 
 export function Footer() {
   return (
@@ -7,9 +7,7 @@ export function Footer() {
       <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="bg-primary-gradient flex size-8 items-center justify-center rounded-lg text-primary-foreground">
-              <ScanLine className="size-4" />
-            </span>
+            <BrandMark className="size-8 shrink-0" />
             <span className="font-display text-base font-bold">LabelCheck</span>
           </div>
           <p className="mt-3 max-w-xs text-sm text-muted-foreground">

@@ -1,9 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
-import { Menu, X, ScanLine, LogOut } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, displayName } from "@/lib/auth";
+import { BrandMark } from "@/components/site/BrandMark";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -31,9 +32,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <nav className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <span className="bg-primary-gradient flex size-9 items-center justify-center rounded-xl text-primary-foreground shadow-soft">
-            <ScanLine className="size-5" />
-          </span>
+          <BrandMark className="size-9 shrink-0" />
           <span className="font-display text-lg font-bold tracking-tight">
             Label<span className="text-primary">Check</span>
           </span>

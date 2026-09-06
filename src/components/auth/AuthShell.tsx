@@ -6,12 +6,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { ScanLine, ShieldCheck, Layers, FileDown, Loader2 } from "lucide-react";
+import { ShieldCheck, Layers, FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WireGlobe } from "@/components/site/WireGlobe";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/site/BrandMark";
 
 const POINTS = [
   { icon: ShieldCheck, text: "Cited Rule 6 verdicts in seconds" },
@@ -100,9 +101,7 @@ export function AuthShell({
           className="w-full max-w-md"
         >
           <Link to="/" className="inline-flex items-center gap-2.5">
-            <span className="bg-primary-gradient flex size-9 items-center justify-center rounded-xl text-primary-foreground shadow-soft">
-              <ScanLine className="size-5" />
-            </span>
+            <BrandMark className="size-9 shrink-0" />
             <span className="font-display text-lg font-bold tracking-tight">
               Label<span className="text-primary">Check</span>
             </span>
