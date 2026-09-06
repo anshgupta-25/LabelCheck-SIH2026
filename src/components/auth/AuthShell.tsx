@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { WireGlobe } from "@/components/site/WireGlobe";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { safeNext, carryNext } from "@/lib/auth-next";
 import { BrandMark } from "@/components/site/BrandMark";
 
 const POINTS = [
@@ -114,27 +115,6 @@ export function AuthShell({
       </main>
     </div>
   );
-}
-
-/** Auth screens themselves are never a sensible destination. */
-const AUTH_PATHS = ["/login", "/signup", "/auth/", "/forgot-password", "/reset-password"];
-
-/**
- * Where to send the user after auth. Only same-origin paths are honoured, and
- * never an auth page — otherwise `next` nests into itself on every hop and the
- * URL grows without bound.
- */
-export function safeNext(next: string | undefined, fallback = "/scan"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return fallback;
-  const path = next.split("?")[0] ?? "";
-  if (AUTH_PATHS.some((p) => path === p || path.startsWith(p))) return fallback;
-  return next;
-}
-
-/** The `next` worth carrying on links between auth pages; undefined when unsafe. */
-export function carryNext(next: string | undefined): string | undefined {
-  const safe = safeNext(next, "");
-  return safe === "" ? undefined : safe;
 }
 
 /** The parts of Google Identity Services we rely on. */
@@ -387,3 +367,6 @@ function GoogleMark() {
     </svg>
   );
 }
+
+// Re-exported so existing auth-screen imports keep working.
+export { safeNext, carryNext };

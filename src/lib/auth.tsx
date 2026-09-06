@@ -20,6 +20,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { safeNext } from "@/lib/auth-next";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendWelcomeEmail } from "@/lib/email.functions";
@@ -109,11 +110,24 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Where to return to after signing in, captured while the user is still on
+  // the protected page. This must NOT be read from location.href inside the
+  // redirect effect: once the redirect lands, href is the login URL, and
+  // feeding that back in re-fires the effect and nests
+  // /login?next=/login?next=… until React aborts with "maximum update depth".
+  const target = useRef(location.href);
   useEffect(() => {
-    if (!loading && !user) {
-      void navigate({ to: "/login", search: { next: location.href }, replace: true });
-    }
-  }, [loading, user, navigate, location.href]);
+    if (user) target.current = location.href;
+  }, [user, location.href]);
+
+  useEffect(() => {
+    if (loading || user) return;
+    void navigate({
+      to: "/login",
+      search: { next: safeNext(target.current, "") || undefined },
+      replace: true,
+    });
+  }, [loading, user, navigate]);
 
   if (loading || !user) {
     return (
