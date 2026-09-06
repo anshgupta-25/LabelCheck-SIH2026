@@ -4,11 +4,11 @@ Everything needed to run LabelCheck locally or deploy it.
 
 ## 1. Prerequisites
 
-| Tool | Version |
-| --- | --- |
-| Node.js | 22.x (see `.nvmrc`) |
-| npm | 10+ (ships with Node) |
-| Git | any recent version |
+| Tool    | Version               |
+| ------- | --------------------- |
+| Node.js | 22.x (see `.nvmrc`)   |
+| npm     | 10+ (ships with Node) |
+| Git     | any recent version    |
 
 ## 2. Clone and install
 
@@ -72,18 +72,38 @@ manual steps — see [DATABASE.md](./DATABASE.md).
 Any other Nitro target works by setting `NITRO_PRESET` (e.g. `node-server`,
 `vercel`, `cloudflare-module`) at build time.
 
-## 7. Troubleshooting
+## 7. Known audit warnings
 
-| Symptom | Fix |
-| --- | --- |
-| "Text extraction is not configured" | `OCR_API_KEY` missing in `.env` or on the host; restart the dev server after adding it |
-| "The OCR API key was rejected" | Key is wrong, disabled, or billing is not enabled at the provider |
-| Demo buttons work but uploads fail | Supabase env vars not set, or the `label-images` bucket / policies are missing |
-| Report images 404 | Signed URL expired — reload the report |
-| `Deploy directory 'dist/client' does not exist` | Publish directory must be `dist` |
-| Build fails on Node 24 | Use Node 22 (`.nvmrc`) or set `NODE_VERSION=22.14.0` |
+`npm audit` reports two high-severity advisories against **image-size**, a
+transitive dependency of `pptxgenjs` (used only by the pitch-deck PPTX export).
+Both are denial-of-service bugs in its ICNS, JXL and HEIF parsers.
 
-## 8. Authentication (Supabase Auth)
+They are **not reachable here, and not shipped**:
+
+- The advisories cover `image-size <= 2.0.2`, and 2.0.2 is the latest release —
+  there is no fixed version to upgrade or override to. npm's only suggested fix
+  is downgrading `pptxgenjs` to 1.1.5, three majors back, which would break the
+  export API.
+- `image-size` is used by pptxgenjs only when embedding images. The deck export
+  is text, shapes and tables, so the code path is never entered.
+- It is a Node-only path and is tree-shaken out of the browser build. Verified:
+  no shipped asset under `.output/public` contains it.
+
+Re-check after any dependency bump with
+`grep -rl "image-size\|ICNS" .output/public/assets/` — it should print nothing.
+
+## 8. Troubleshooting
+
+| Symptom                                         | Fix                                                                                    |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
+| "Text extraction is not configured"             | `OCR_API_KEY` missing in `.env` or on the host; restart the dev server after adding it |
+| "The OCR API key was rejected"                  | Key is wrong, disabled, or billing is not enabled at the provider                      |
+| Demo buttons work but uploads fail              | Supabase env vars not set, or the `label-images` bucket / policies are missing         |
+| Report images 404                               | Signed URL expired — reload the report                                                 |
+| `Deploy directory 'dist/client' does not exist` | Publish directory must be `dist`                                                       |
+| Build fails on Node 24                          | Use Node 22 (`.nvmrc`) or set `NODE_VERSION=22.14.0`                                   |
+
+## 9. Authentication (Supabase Auth)
 
 Scanning and History require a signed-in user; report links stay public so
 QR codes and share links work for anyone. Users sign in with e-mail/password
@@ -96,15 +116,15 @@ or Google. Configure once in the Supabase dashboard → **Authentication**:
    accounts work instantly. Leave it on in production; the signup page then
    shows a "check your inbox" step.
 3. **Providers → Google** → enable, paste the OAuth client ID and secret from
-   Google Cloud Console (Credentials → OAuth 2.0 Client ID, type *Web
-   application*). In Google Cloud, add the authorised redirect URI shown by
+   Google Cloud Console (Credentials → OAuth 2.0 Client ID, type _Web
+   application_). In Google Cloud, add the authorised redirect URI shown by
    Supabase (`https://<project-ref>.supabase.co/auth/v1/callback`).
 
 Ownership is enforced in the database (`owner_id` on `scans`, owner-only
 insert/update/delete policies), so a user can only ever list, correct or delete
 their own inspections.
 
-## 9. E-mail (Resend)
+## 10. E-mail (Resend)
 
 The app sends two kinds of mail itself through [Resend](https://resend.com):
 a **welcome e-mail** after the first sign-in and **"E-mail report"** from a
@@ -123,14 +143,14 @@ Supabase's built-in mailer is rate-limited (a handful per hour) and unbranded.
 Point it at Resend once, in **Supabase dashboard → Project Settings →
 Authentication → SMTP Settings**:
 
-| Field | Value |
-| --- | --- |
+| Field         | Value                      |
+| ------------- | -------------------------- |
 | Sender e-mail | `labelcheck@anshguptaa.in` |
-| Sender name | `LabelCheck` |
-| Host | `smtp.resend.com` |
-| Port | `465` |
-| Username | `resend` |
-| Password | your Resend API key |
+| Sender name   | `LabelCheck`               |
+| Host          | `smtp.resend.com`          |
+| Port          | `465`                      |
+| Username      | `resend`                   |
+| Password      | your Resend API key        |
 
 Then apply the branded templates from `docs/email-templates/` (all six auth
 mails, each with the six-digit code as well as the link). Either paste them in
@@ -151,7 +171,7 @@ script can also set `AUTH_SITE_URL`, `AUTH_REDIRECT_URLS`, `AUTH_AUTOCONFIRM`,
 `/reset-password`, which exchanges the code and lets the user set a new
 password. Add `https://sih.anshguptaa.in/reset-password` and
 `http://localhost:8080/reset-password` to the redirect allow-list if you use a
-strict list instead of the `/**` wildcards from section 8.
+strict list instead of the `/**` wildcards from section 9.
 
 ### Google sign-in without the Supabase domain
 

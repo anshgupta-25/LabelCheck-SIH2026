@@ -657,5 +657,8 @@ export async function buildReportPdf(input: ReportPdfInput): Promise<jsPDF> {
 
 export async function downloadReportPdf(input: ReportPdfInput): Promise<void> {
   const doc = await buildReportPdf(input);
-  doc.save(`LabelCheck-report-${input.id.slice(0, 8)}.pdf`);
+  // UUIDs are shortened to a readable stem; demo ids are already short, and
+  // slicing them produced names like "LabelCheck-report-demo-non.pdf".
+  const stem = /^[0-9a-f-]{36}$/i.test(input.id) ? input.id.slice(0, 8) : input.id;
+  doc.save(`LabelCheck-report-${stem}.pdf`);
 }
