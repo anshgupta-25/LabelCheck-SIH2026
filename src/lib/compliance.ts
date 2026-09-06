@@ -224,9 +224,39 @@ const COUNTRY_WORDS = new Set(
 );
 
 /** True when the words after "Made in" look like a country rather than prose. */
+/**
+ * Words that follow "Made in …" on template and mock-up artwork but are never
+ * a country. Without these the capitalised-proper-noun fallback below accepts
+ * the placeholder "MADE IN COUNTRY" as a valid origin declaration.
+ */
+const PLACEHOLDER_WORDS = new Set([
+  "country",
+  "country name",
+  "origin",
+  "place",
+  "location",
+  "region",
+  "state",
+  "city",
+  "here",
+  "name",
+  "your country",
+  "lorem",
+  "lorem ipsum",
+  "xxx",
+  "xxxx",
+  "abc",
+  "sample",
+  "example",
+  "text",
+  "the usa",
+]);
+
 function looksLikeCountry(raw: string): boolean {
   const value = raw.trim().replace(/[.,;].*$/, "");
-  if (COUNTRY_WORDS.has(value.toLowerCase())) return true;
+  const lower = value.toLowerCase();
+  if (COUNTRY_WORDS.has(lower)) return true;
+  if (PLACEHOLDER_WORDS.has(lower)) return false;
   // Otherwise accept a capitalised proper noun ("MADE IN INDIA", "Made in Nepal")
   // but never lower-case prose ("made in small batches").
   return /^[A-Z][A-Za-z]{2,}(?: [A-Z][A-Za-z]+)?$/.test(value);
