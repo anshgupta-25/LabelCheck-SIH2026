@@ -237,13 +237,16 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
           cancel_on_tap_outside: true,
         });
         parent.replaceChildren();
+        // Rendered at Google's maximum width, then stretched by CSS to cover
+        // our own button underneath. It is never seen — it only receives the
+        // click, which is what keeps the flow on our origin.
         gsi.accounts.id.renderButton(parent, {
           type: "standard",
           theme: "outline",
           size: "large",
-          shape: "pill",
+          shape: "rectangular",
           text: /sign up/i.test(label) ? "signup_with" : "continue_with",
-          width: Math.min(Math.max(parent.offsetWidth || 360, 200), 400),
+          width: 400,
         });
         setGisReady(true);
       } catch {
@@ -278,29 +281,34 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
   }, [clientId, label, onCredential]);
 
   return (
-    <div className="w-full">
-      {/* Google renders its own button here. It must sit on our origin for the
-          consent screen to carry our name and logo. Google caps the rendered
-          width at 400px, so stretch its wrapper to match our 448px form. */}
+    <div className="relative w-full">
+      {/* Our button, so the page keeps its own look. */}
+      <Button
+        type="button"
+        variant="outline"
+        className="h-12 w-full gap-3 text-base"
+        onClick={redirectFlow}
+        disabled={pending}
+      >
+        {pending ? <Loader2 className="size-5 animate-spin" /> : <GoogleMark />}
+        {label}
+      </Button>
+
+      {/* Google's own button, stretched over ours and made invisible. The click
+          has to land on Google's iframe for the ID-token flow, which is what
+          keeps the consent screen on our domain. When the script is blocked
+          this stays inert and the button above falls back to the redirect. */}
       <div
         ref={slot}
+        aria-hidden
+        data-gsi-slot
         className={cn(
-          "flex w-full justify-center [&>div]:w-full! [&_iframe]:w-full!",
-          (!gisReady || pending) && "hidden",
+          // Sizing lives in styles.css: Google renders a fixed 400x40 button
+          // that has to be stretched to cover ours.
+          "absolute inset-0 overflow-hidden opacity-0",
+          gisReady && !pending ? "z-10" : "pointer-events-none",
         )}
       />
-      {(!gisReady || pending) && (
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 w-full gap-3 text-base"
-          onClick={redirectFlow}
-          disabled={pending}
-        >
-          {pending ? <Loader2 className="size-5 animate-spin" /> : <GoogleMark />}
-          {label}
-        </Button>
-      )}
     </div>
   );
 }

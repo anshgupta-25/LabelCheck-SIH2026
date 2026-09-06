@@ -310,3 +310,18 @@
 @utility animate-verdict-pulse {
   animation: verdict-pulse 2.4s ease-out 2;
 }
+
+/*
+ * Google Identity Services renders a fixed-size button (max 400x40) inside its
+ * own markup. We overlay it, invisible, on top of our own styled button so the
+ * click reaches Google — that is what keeps the consent screen on our domain.
+ * Every wrapper and the clickable element itself must stretch to cover ours.
+ */
+[data-gsi-slot] > div,
+[data-gsi-slot] > div > div,
+[data-gsi-slot] [role="button"] {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  border-radius: inherit !important;
+}
