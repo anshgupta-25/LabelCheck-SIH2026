@@ -280,10 +280,14 @@ export function GoogleButton({ next, label }: { next: string; label: string }) {
   return (
     <div className="w-full">
       {/* Google renders its own button here. It must sit on our origin for the
-          consent screen to carry our name and logo. */}
+          consent screen to carry our name and logo. Google caps the rendered
+          width at 400px, so stretch its wrapper to match our 448px form. */}
       <div
         ref={slot}
-        className={cn("flex w-full justify-center", (!gisReady || pending) && "hidden")}
+        className={cn(
+          "flex w-full justify-center [&>div]:w-full! [&_iframe]:w-full!",
+          (!gisReady || pending) && "hidden",
+        )}
       />
       {(!gisReady || pending) && (
         <Button
