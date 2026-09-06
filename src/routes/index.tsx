@@ -207,7 +207,7 @@ function Home() {
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="relative order-2 lg:order-1"
           >
-            <div className="relative mx-auto aspect-square w-full max-w-[26rem] xl:-translate-x-10">
+            <div className="relative mx-auto aspect-square w-full max-w-[26rem] lg:-translate-y-8 xl:-translate-x-10">
               <WireGlobe className="size-full" />
               <GlobeCallouts />
             </div>
