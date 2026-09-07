@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Maximize2, Minimize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DECK, DECK_META, type Block } from "@/lib/deck-content";
@@ -24,7 +24,7 @@ function BlockView({ block }: { block: Block }) {
         </div>
       );
 
-    case "stats":
+    case "metrics":
       return (
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {block.items.map((s, i) => (
@@ -33,46 +33,13 @@ function BlockView({ block }: { block: Block }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.06 * i, duration: 0.4 }}
-              className="rounded-2xl border border-border bg-card/80 p-3 shadow-soft backdrop-blur sm:p-4"
+              className="overflow-hidden rounded-2xl border border-border bg-card/85 shadow-soft backdrop-blur"
             >
-              <p className="font-display text-2xl text-accent sm:text-4xl">{s.value}</p>
-              <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground sm:text-sm">
-                {s.label}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      );
-
-    case "bullets":
-    case "steps":
-      return (
-        <div
-          className={cn(
-            "grid gap-2.5",
-            block.items.length > 3 ? "sm:grid-cols-2" : "sm:grid-cols-1",
-          )}
-        >
-          {block.items.map((it, i) => (
-            <motion.div
-              key={it.title}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 * i, duration: 0.4 }}
-              className="flex gap-2.5"
-            >
-              <span className="mt-1.5 size-2 shrink-0 rounded-full bg-accent" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold sm:text-base">
-                  {block.kind === "steps" && (
-                    <span className="mr-2 font-mono text-[0.65rem] text-accent">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  )}
-                  {it.title}
-                </p>
-                <p className="mt-0.5 text-[0.72rem] leading-relaxed text-muted-foreground sm:text-sm">
-                  {it.body}
+              <div className="h-1 bg-accent" />
+              <div className="p-3 sm:p-4">
+                <p className="font-display text-2xl text-accent sm:text-4xl">{s.value}</p>
+                <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground sm:text-sm">
+                  {s.label}
                 </p>
               </div>
             </motion.div>
@@ -80,12 +47,72 @@ function BlockView({ block }: { block: Block }) {
         </div>
       );
 
+    case "cards":
+      return (
+        <div
+          className={cn(
+            "grid gap-2.5",
+            block.cols === 2 && "sm:grid-cols-2",
+            block.cols === 3 && "sm:grid-cols-2 lg:grid-cols-3",
+            block.cols === 4 && "sm:grid-cols-2 lg:grid-cols-4",
+          )}
+        >
+          {block.items.map((it, i) => (
+            <motion.div
+              key={it.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.04 * i, duration: 0.35 }}
+              className="rounded-2xl border border-border bg-card/85 p-3 shadow-soft backdrop-blur sm:p-4"
+            >
+              {it.badge && (
+                <span className="inline-block rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[0.55rem] font-semibold uppercase tracking-wide text-accent sm:text-[0.62rem]">
+                  {it.badge}
+                </span>
+              )}
+              <p className="mt-1.5 text-sm font-semibold sm:text-base">{it.title}</p>
+              <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground sm:text-[0.8rem]">
+                {it.body}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      );
+
+    case "pipeline":
+      return (
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+          {block.items.map((it, i) => (
+            <motion.div
+              key={it.title}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.07 * i, duration: 0.4 }}
+              className="flex flex-col rounded-2xl border border-border bg-card/85 p-3 shadow-soft backdrop-blur"
+            >
+              <span className="flex size-6 items-center justify-center rounded-full bg-accent text-[0.65rem] font-bold text-accent-foreground">
+                {i + 1}
+              </span>
+              <p className="mt-2 text-sm font-semibold">{it.title}</p>
+              <p className="mt-1 flex-1 text-[0.7rem] leading-relaxed text-muted-foreground">
+                {it.body}
+              </p>
+              {it.out && (
+                <p className="mt-2 rounded-md bg-accent/10 px-2 py-1 font-mono text-[0.6rem] text-accent">
+                  {it.out}
+                </p>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      );
+
     case "table":
       return (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card/80 backdrop-blur">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card/85 backdrop-blur">
           <table className="w-full min-w-[36rem] border-collapse text-left">
             <thead>
-              <tr className="border-b border-border">
+              <tr className="bg-accent/10">
                 {block.head.map((h) => (
                   <th
                     key={h}
@@ -98,12 +125,18 @@ function BlockView({ block }: { block: Block }) {
             </thead>
             <tbody>
               {block.rows.map((row, r) => (
-                <tr key={r} className="border-b border-border/60 last:border-b-0">
+                <tr
+                  key={r}
+                  className={cn(
+                    "border-b border-border/60 last:border-b-0",
+                    r % 2 && "bg-secondary/40",
+                  )}
+                >
                   {row.map((c, i) => (
                     <td
                       key={i}
                       className={cn(
-                        "px-3 py-2 align-top text-[0.72rem] leading-relaxed sm:px-4 sm:text-sm",
+                        "px-3 py-2 align-top text-[0.7rem] leading-relaxed sm:px-4 sm:text-[0.8rem]",
                         i === 0 ? "font-semibold" : "text-muted-foreground",
                       )}
                     >
@@ -114,6 +147,170 @@ function BlockView({ block }: { block: Block }) {
               ))}
             </tbody>
           </table>
+        </div>
+      );
+
+    case "compare":
+      return (
+        <div className="overflow-hidden rounded-xl border border-border bg-card/85 backdrop-blur">
+          <div className="grid grid-cols-[1fr_1fr] sm:grid-cols-[0.8fr_1fr_1fr]">
+            <div className="hidden sm:block" />
+            <div className="px-3 py-1.5 text-[0.58rem] font-semibold uppercase tracking-wide text-muted-foreground sm:px-4">
+              {block.head[0]}
+            </div>
+            <div className="bg-accent/10 px-3 py-1.5 text-[0.58rem] font-semibold uppercase tracking-wide text-accent sm:px-4">
+              {block.head[1]}
+            </div>
+          </div>
+          {block.rows.map((r) => (
+            <div
+              key={r.aspect}
+              className="grid grid-cols-[1fr_1fr] border-t border-border sm:grid-cols-[0.8fr_1fr_1fr]"
+            >
+              <div className="col-span-2 px-3 pt-2 text-[0.72rem] font-semibold sm:col-span-1 sm:px-4 sm:py-2 sm:pt-2">
+                {r.aspect}
+              </div>
+              <div className="flex gap-1.5 px-3 py-2 text-[0.7rem] text-muted-foreground sm:px-4">
+                <X className="mt-0.5 size-3 shrink-0 text-destructive" />
+                {r.a}
+              </div>
+              <div className="flex gap-1.5 bg-accent/5 px-3 py-2 text-[0.7rem] sm:px-4">
+                <Check className="mt-0.5 size-3 shrink-0 text-success" />
+                {r.b}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+
+    case "timeline":
+      return (
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {block.items.map((it, i) => (
+            <motion.div
+              key={it.when}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.07 * i, duration: 0.4 }}
+            >
+              <p className="eyebrow text-accent">{it.when}</p>
+              <div className="relative mt-1.5 mb-2 h-px bg-border">
+                <span
+                  className={cn(
+                    "absolute -top-1 left-0 size-2 rounded-full border border-accent",
+                    i === 0 ? "bg-accent" : "bg-background",
+                  )}
+                />
+              </div>
+              <div className="rounded-2xl border border-border bg-card/85 p-3 shadow-soft backdrop-blur">
+                <p className="text-sm font-semibold">{it.title}</p>
+                <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">
+                  {it.body}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      );
+
+    case "bars": {
+      const max = Math.max(...block.items.map((i) => i.value));
+      return (
+        <div>
+          {block.caption && <p className="eyebrow mb-2 text-muted-foreground">{block.caption}</p>}
+          <div className="space-y-2">
+            {block.items.map((it, i) => (
+              <div key={it.label} className="flex items-center gap-3">
+                <span className="w-32 shrink-0 text-[0.72rem] font-semibold sm:w-44 sm:text-sm">
+                  {it.label}
+                </span>
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-secondary">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(it.value / max) * 100}%` }}
+                    transition={{ delay: 0.1 * i, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn(
+                      "h-full rounded-full",
+                      it.accent ? "bg-accent" : "bg-muted-foreground/50",
+                    )}
+                  />
+                </div>
+                <span
+                  className={cn(
+                    "w-14 shrink-0 text-right text-[0.75rem] font-bold tabular-nums sm:text-sm",
+                    it.accent ? "text-accent" : "text-muted-foreground",
+                  )}
+                >
+                  {it.display}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    case "image":
+      return (
+        <figure className="flex min-h-0 flex-1 flex-col items-center">
+          <img
+            src={block.src}
+            alt={block.caption ?? ""}
+            className="max-h-full min-h-0 flex-1 rounded-xl border border-border object-contain shadow-soft"
+          />
+          {block.caption && (
+            <figcaption className="mt-2 text-center text-[0.68rem] italic text-muted-foreground">
+              {block.caption}
+            </figcaption>
+          )}
+        </figure>
+      );
+
+    case "gallery":
+      return (
+        <div className="grid min-h-0 flex-1 gap-3 sm:grid-cols-3">
+          {block.items.map((g) => (
+            <figure key={g.src} className="flex min-h-0 flex-col">
+              <img
+                src={g.src}
+                alt={g.caption}
+                className="min-h-0 flex-1 rounded-xl border border-border object-contain shadow-soft"
+              />
+              <figcaption className="mt-1.5 text-center text-[0.66rem] font-medium">
+                {g.caption}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      );
+
+    case "split":
+      return (
+        <div className="grid min-h-0 flex-1 items-start gap-4 sm:grid-cols-2">
+          <img
+            src={block.src}
+            alt=""
+            className="max-h-full rounded-xl border border-border object-contain shadow-soft"
+          />
+          <div className="space-y-2">
+            {block.items.map((it, i) => (
+              <motion.div
+                key={it.title}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * i, duration: 0.35 }}
+                className="flex gap-2"
+              >
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />
+                <div>
+                  <p className="text-[0.8rem] font-semibold sm:text-sm">{it.title}</p>
+                  <p className="text-[0.68rem] leading-relaxed text-muted-foreground sm:text-[0.78rem]">
+                    {it.body}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       );
   }

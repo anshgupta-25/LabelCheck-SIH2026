@@ -10,12 +10,34 @@
  */
 
 export type Block =
+  /** One line of framing under the title. */
   | { kind: "lead"; text: string }
-  | { kind: "stats"; items: { value: string; label: string }[] }
-  | { kind: "bullets"; items: { title: string; body: string }[] }
-  | { kind: "steps"; items: { title: string; body: string }[] }
+  /** Accent-barred aside — a caveat, a caption, the honest footnote. */
+  | { kind: "note"; text: string }
+  /** Big-number stat cards across the slide. */
+  | { kind: "metrics"; items: { value: string; label: string }[] }
+  /** Card grid; `cols` sets the columns, the rest wrap. */
+  | { kind: "cards"; cols: number; items: { badge?: string; title: string; body: string }[] }
+  /** Numbered stages joined by arrows, each optionally naming its output. */
+  | { kind: "pipeline"; items: { title: string; body: string; out?: string }[] }
+  /** Zebra-striped table with an accent header rule. */
   | { kind: "table"; head: string[]; rows: string[][] }
-  | { kind: "note"; text: string };
+  /** Two-column before/after, one row per aspect. */
+  | { kind: "compare"; head: [string, string]; rows: { aspect: string; a: string; b: string }[] }
+  /** Horizontal phase timeline. */
+  | { kind: "timeline"; items: { when: string; title: string; body: string }[] }
+  /** Horizontal bar chart; `value` is relative, `display` is the printed figure. */
+  | {
+      kind: "bars";
+      caption?: string;
+      items: { label: string; value: number; display: string; accent?: boolean }[];
+    }
+  /** A screenshot from /public, fitted and captioned. */
+  | { kind: "image"; src: string; caption?: string }
+  /** Several screenshots side by side, each captioned. */
+  | { kind: "gallery"; items: { src: string; caption: string }[] }
+  /** Screenshot on the left, points on the right. */
+  | { kind: "split"; src: string; items: { title: string; body: string }[] };
 
 export interface DeckSlide {
   id: string;
@@ -40,8 +62,15 @@ export const DECK_META = {
   url: "https://sih.anshguptaa.in",
 };
 
+/**
+ * Slide order follows the SIH recommended structure: problem statement,
+ * problem analysis, existing solutions and the gap, proposed solution, how it
+ * works, architecture, stack, demo, evidence, impact, plan, future scope, team,
+ * conclusion. "Not addressing the gap" is a listed judging pitfall, so slide 04
+ * exists specifically to answer it.
+ */
 export const DECK: DeckSlide[] = [
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 01 --------------------------------- */
   {
     id: "title",
     no: "",
@@ -50,131 +79,198 @@ export const DECK: DeckSlide[] = [
     blocks: [
       { kind: "lead", text: "Photograph a label. Get a cited compliance verdict in seconds." },
       {
-        kind: "stats",
+        kind: "metrics",
         items: [
           { value: "7", label: "Rule 6(1) declarations verified" },
           { value: "~6s", label: "Photo to verdict, measured" },
-          { value: "8", label: "Labels per batch" },
+          { value: "8", label: "Labels checked per batch" },
           { value: "Live", label: "sih.anshguptaa.in" },
         ],
       },
       {
-        kind: "note",
-        text: `${DECK_META.problemId} · ${DECK_META.ministry} · Team ${DECK_META.team}`,
+        kind: "image",
+        src: "/deck/hero.jpg",
+        caption: `${DECK_META.problemId}  ·  ${DECK_META.ministry}  ·  Team ${DECK_META.team}`,
       },
     ],
     notes:
       "Open by saying the product is live and can be tried on the judges' own phone right now, at sih.anshguptaa.in. This is a working system, not a mockup.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 02 --------------------------------- */
   {
     id: "problem",
-    no: "01",
-    kicker: "Problem validation",
+    no: "02",
+    kicker: "Problem statement",
     title: "Seven declarations, crores of packages, verified by eye",
     blocks: [
       {
         kind: "lead",
-        text: "Every pre-packaged commodity sold in India must carry seven mandatory declarations under Rule 6 of the Legal Metrology (Packaged Commodities) Rules, 2011. Verification today is manual, one pack at a time.",
+        text: "Every pre-packaged commodity sold in India must carry seven mandatory declarations under Rule 6. Verification today is manual, one pack at a time.",
       },
       {
-        kind: "bullets",
+        kind: "cards",
+        cols: 4,
         items: [
           {
-            title: "Who faces it",
-            body: "Legal Metrology officers inspecting retail and warehouses; manufacturers checking artwork before a print run; e-commerce teams listing lakhs of SKUs.",
+            badge: "Who",
+            title: "Enforcement officers",
+            body: "Legal Metrology officers inspecting retail counters and warehouses, pack by pack.",
           },
           {
-            title: "Why it does not scale",
-            body: "A person checks roughly one pack a minute, from memory, and tires. An online catalogue of lakhs of listings cannot be eyeballed at all.",
+            badge: "Scale",
+            title: "Lakhs of listings",
+            body: "An e-commerce catalogue cannot be eyeballed at all, so most of it is never checked.",
           },
           {
-            title: "Why it is inconsistent",
-            body: "Two officers can reach two verdicts on the same pack. Nothing records which sub-rule was applied, so findings are hard to defend on appeal.",
+            badge: "Speed",
+            title: "One pack a minute",
+            body: "A person reads seven declarations from memory, and tires as the shift goes on.",
           },
           {
-            title: "Consequence",
-            body: "Contravention attracts penalties under the Legal Metrology Act, 2009 — but only where a violation is actually found. Unchecked packaging is unpenalised packaging.",
+            badge: "Record",
+            title: "No audit trail",
+            body: "Nothing records which sub-rule was applied, so a finding is hard to defend on appeal.",
           },
         ],
+      },
+      {
+        kind: "note",
+        text: "Contravention attracts penalties under the Legal Metrology Act, 2009 — but only where a violation is actually found. Unchecked packaging is unpenalised packaging.",
       },
     ],
     notes:
       "Do not claim a statistic you cannot source. The strength here is structural: the rules are not the bottleneck, the reading of them is.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 03 --------------------------------- */
   {
-    id: "users",
-    no: "02",
-    kicker: "User requirements",
-    title: "Three users, one photograph",
+    id: "analysis",
+    no: "03",
+    kicker: "Problem analysis",
+    title: "Where the manual process actually breaks",
     blocks: [
       {
-        kind: "table",
-        head: ["User", "What they need", "What we give them"],
+        kind: "compare",
+        head: ["Manual inspection today", "With LabelCheck"],
         rows: [
-          [
-            "Legal Metrology officer",
-            "A defensible finding, in the field, on a phone",
-            "Per-field verdict with the sub-rule cited, editable, exported as a signed-off PDF for the inspection file",
-          ],
-          [
-            "Manufacturer / packer",
-            "To catch a missing declaration before printing",
-            "Upload the artwork proof and get the gaps listed before a run of a lakh cartons",
-          ],
-          [
-            "E-commerce marketplace",
-            "To screen listings at catalogue scale",
-            "Batch checking today; the same engine behind an API for pre-listing checks",
-          ],
-          [
-            "Consumer (secondary)",
-            "To know whether a pack is lawful",
-            "A public report link and QR that opens the live verdict for anyone",
-          ],
+          {
+            aspect: "Time per pack",
+            a: "About a minute, by eye",
+            b: "About six seconds, end to end",
+          },
+          {
+            aspect: "Consistency",
+            a: "Varies by officer, and by hour",
+            b: "The same seven checks, every time",
+          },
+          {
+            aspect: "Legal citation",
+            a: "Recalled from memory",
+            b: "Sub-rule printed against each finding",
+          },
+          {
+            aspect: "Audit trail",
+            a: "A paper note, if any",
+            b: "Timestamped record, PDF and share link",
+          },
+          {
+            aspect: "Scale",
+            a: "One pack at a time",
+            b: "Eight per batch; an API for a catalogue",
+          },
         ],
       },
       {
         kind: "note",
-        text: "Requirement that shaped the build: an officer must be able to correct a mis-read and have the verdict recompute — a tool that cannot be overruled will not be trusted.",
+        text: "Two officers can reach two different verdicts on the same pack. The rules are not the bottleneck — the reading of them is.",
+      },
+    ],
+    notes: "This is the slide that earns the solution. Land the consistency row hardest.",
+  },
+
+  /* --------------------------------- 04 --------------------------------- */
+  {
+    id: "existing",
+    no: "04",
+    kicker: "Existing solutions",
+    title: "What exists today, and the gap it leaves",
+    blocks: [
+      {
+        kind: "cards",
+        cols: 3,
+        items: [
+          {
+            badge: "Today",
+            title: "Manual inspection",
+            body: "An officer reads the pack. Accurate when unhurried, but slow, inconsistent between officers, and leaves no structured record.",
+          },
+          {
+            badge: "Today",
+            title: "Generic OCR apps",
+            body: "Extract text from an image, and stop there. They have no concept of Rule 6, so they cannot say whether a package is compliant.",
+          },
+          {
+            badge: "Today",
+            title: "Marketplace checklists",
+            body: "Sellers self-declare against a form. Nothing verifies that the printed pack matches what was typed into the listing.",
+          },
+          {
+            badge: "Gap",
+            title: "No rule engine",
+            body: "Nothing maps extracted text onto the seven sub-rules of Rule 6(1) and returns a verdict a judge or officer could cite.",
+          },
+          {
+            badge: "Gap",
+            title: "No validation",
+            body: "Existing tools check that a field is present. None check that ₹0, 0 g or a blank date is not a valid declaration.",
+          },
+          {
+            badge: "Gap",
+            title: "No audit trail",
+            body: "None produce a cited, shareable, correctable record that survives a challenge in a hearing.",
+          },
+        ],
+      },
+      {
+        kind: "note",
+        text: "LabelCheck closes exactly these three gaps: a codified Rule 6 engine, validation rather than presence, and a cited audit record for every inspection.",
       },
     ],
     notes:
-      "The correctability requirement is the one judges probe. Lead with it if asked how this survives a challenge in a hearing.",
+      "'Not addressing the gap' is a listed judging mistake. This slide exists to make the gap explicit before we claim to fill it.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 05 --------------------------------- */
   {
     id: "solution",
-    no: "",
-    kicker: "The solution",
+    no: "05",
+    kicker: "Proposed solution",
     title: "From a photograph to filed evidence",
     blocks: [
       {
-        kind: "steps",
+        kind: "split",
+        src: "/deck/report.jpg",
         items: [
           {
-            title: "Capture",
-            body: "Photograph the principal display panel — one pack, or up to eight at once for a batch.",
+            title: "Photograph the pack",
+            body: "One label, or up to eight at once, from any phone in the field.",
           },
           {
-            title: "Extract",
-            body: "A vision model transcribes every printed line server-side. Credentials never reach the browser.",
+            title: "Seven checks, cited",
+            body: "Each declaration validated against its own sub-rule from (a) to (g).",
           },
           {
-            title: "Apply Rule 6",
-            body: "Seven independent detectors validate each declaration and score their own confidence.",
+            title: "A verdict with confidence",
+            body: "Per-field score, the matched text, and the exact clause behind every violation.",
           },
           {
-            title: "Cite",
-            body: "Every violation is reported with its exact sub-rule and a plain-language explanation.",
+            title: "Correctable by the officer",
+            body: "Any mis-read is editable in place; the verdict recomputes immediately.",
           },
           {
-            title: "File",
-            body: "Export a cited PDF with the label photo, the raw text and a QR to the live verdict.",
+            title: "Filed as evidence",
+            body: "A cited PDF with the photo, the raw text and a QR to the live verdict.",
           },
         ],
       },
@@ -187,150 +283,181 @@ export const DECK: DeckSlide[] = [
       "The validation-not-presence point is the single strongest technical differentiator. Say it out loud.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 06 --------------------------------- */
   {
-    id: "architecture",
-    no: "03",
-    kicker: "System architecture",
-    title: "A five-stage pipeline, traceable end to end",
+    id: "how",
+    no: "06",
+    kicker: "How it works",
+    title: "Five stages, each handing on a named artefact",
     blocks: [
       {
-        kind: "steps",
+        kind: "pipeline",
         items: [
-          { title: "Image", body: "Phone or upload → private Supabase bucket, signed URLs only." },
-          { title: "Text extraction", body: "Server function → vision model → raw transcription." },
-          { title: "Rule engine", body: "Seven detectors → found / value / strength / matchedBy." },
-          { title: "Scoring", body: "Pattern strength blended with capture legibility → 0-100%." },
-          { title: "Report", body: "Verdict + citations, logged to Postgres, exported as PDF." },
+          {
+            title: "Capture",
+            body: "The principal display panel — one pack, or eight at once.",
+            out: "label.jpg",
+          },
+          {
+            title: "Extract",
+            body: "A vision model transcribes every printed line, server-side.",
+            out: "raw text",
+          },
+          {
+            title: "Apply Rule 6",
+            body: "Seven detectors validate each declaration independently.",
+            out: "7 outcomes",
+          },
+          {
+            title: "Score",
+            body: "Pattern strength blended with capture legibility.",
+            out: "0-100% each",
+          },
+          {
+            title: "Report",
+            body: "Verdict, citations, logged for audit and exported as PDF.",
+            out: "verdict + PDF",
+          },
         ],
       },
       {
-        kind: "bullets",
+        kind: "note",
+        text: "Every stage is inspectable: the report shows the raw transcription, the matched substring and which heuristic fired for each field. Nothing is a black box.",
+      },
+    ],
+    notes:
+      "Walk left to right. The artefact chips are what make it read as engineering, not a diagram.",
+  },
+
+  /* --------------------------------- 07 --------------------------------- */
+  {
+    id: "architecture",
+    no: "07",
+    kicker: "Solution architecture",
+    title: "Stateless, horizontally scalable, secret-safe",
+    blocks: [
+      {
+        kind: "split",
+        src: "/deck/pipeline.jpg",
         items: [
           {
             title: "Stateless by design",
-            body: "Nothing is held between requests, so the pipeline scales horizontally and the same code path serves one pack, a batch of eight, or an API caller.",
+            body: "Nothing is held between requests, so one code path serves a single pack, a batch of eight, or an API caller.",
           },
           {
-            title: "Rules are data, not code branches",
-            body: "Each declaration is a self-contained rule object. Adding the FSSAI licence number or a 'best before' date is one new object, not a rewrite.",
+            title: "Rules are data",
+            body: "Each declaration is a self-contained rule object. A new regulation is one new object, not a rewrite.",
           },
           {
-            title: "Auditable at every stage",
-            body: "The report exposes the raw transcription, the matched substring and which heuristic fired for each field.",
+            title: "Ownership in the database",
+            body: "Supabase Postgres with row-level security; a user can never reach another user's inspection.",
+          },
+          {
+            title: "Secrets never ship",
+            body: "Extraction runs in a server function. We grep the built bundle to prove the key is not in it.",
           },
         ],
       },
     ],
     notes:
-      "If asked 'can you show how it works' — open /how-it-works on the live site, which renders this pipeline and every detector from the engine itself.",
+      "The screenshot is the live /how-it-works page, which renders this pipeline and every detector from the engine itself.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 08 --------------------------------- */
   {
     id: "tech",
-    no: "04",
-    kicker: "Technology selection",
+    no: "08",
+    kicker: "Technology stack",
     title: "Every choice has a reason",
     blocks: [
       {
-        kind: "table",
-        head: ["Layer", "Choice", "Why this one"],
-        rows: [
-          [
-            "Text extraction",
-            "Vision-language model, OpenAI-compatible endpoint",
-            "Classical OCR fails on curved packaging, low contrast and mixed scripts. Provider is swappable via two env vars — no lock-in.",
-          ],
-          [
-            "Rule engine",
-            "Hand-written TypeScript detectors",
-            "A statutory verdict must be explainable. Regex and heuristics can be read, cited and unit-tested; a classifier cannot be cross-examined.",
-          ],
-          [
-            "App framework",
-            "TanStack Start, React 19, SSR + server functions",
-            "The API key stays server-side while the UI stays a single deployable. No separate backend to operate.",
-          ],
-          [
-            "Data",
-            "Supabase Postgres, row-level security, private storage",
-            "Ownership enforced in the database rather than the UI, so a user can never reach another user's inspection.",
-          ],
-          [
-            "Reporting",
-            "jsPDF + qrcode, generated client-side",
-            "An officer gets the file instantly, offline, with no server round-trip and no document service to pay for.",
-          ],
-          [
-            "Delivery",
-            "Vercel, custom domain, Resend for mail",
-            "Live and reachable on any phone in the room today.",
-          ],
-        ],
-      },
-    ],
-    notes:
-      "The rule-engine row is the answer to 'why not just use an LLM for everything'. Explainability is a legal requirement here, not a preference.",
-  },
-
-  /* ------------------------------------------------------------------ */
-  {
-    id: "prototype",
-    no: "05",
-    kicker: "Working prototype",
-    title: "Shipped, deployed and usable right now",
-    blocks: [
-      {
-        kind: "lead",
-        text: `Live at ${DECK_META.url} — sign in with Google or e-mail and scan a real pack from the audience.`,
-      },
-      {
-        kind: "bullets",
+        kind: "cards",
+        cols: 3,
         items: [
           {
-            title: "Single and batch scanning",
-            body: "One label, or eight at once with a live progress table and a per-label verdict.",
+            badge: "Extraction",
+            title: "Vision-language model",
+            body: "Classical OCR fails on curved packaging, low contrast and mixed scripts. The provider swaps via two environment variables — no lock-in.",
           },
           {
-            title: "Correctable reports",
-            body: "Any mis-read field is editable in place; the verdict recomputes and the correction persists.",
+            badge: "Rule engine",
+            title: "TypeScript detectors",
+            body: "A statutory verdict must be explainable. Regex and heuristics can be read, cited and unit-tested; a classifier cannot be cross-examined.",
           },
           {
-            title: "Cited PDF + QR share links",
-            body: "Declarations table, violations with sub-rules, label photo, raw text and a QR to the live verdict.",
+            badge: "Framework",
+            title: "TanStack Start, React 19",
+            body: "SSR plus server functions keep the API key server-side while the UI stays a single deployable. No separate backend to operate.",
           },
           {
-            title: "Per-user history",
-            body: "Every inspection is logged against its owner, with authentication, e-mail verification and password reset.",
+            badge: "Data",
+            title: "Supabase Postgres + RLS",
+            body: "Ownership enforced in the database rather than the UI, with a private storage bucket served through signed URLs.",
           },
           {
-            title: "Offline demo mode",
-            body: "Built-in labels run with no network and no database write — the demo cannot fail on venue wi-fi.",
+            badge: "Reporting",
+            title: "jsPDF + qrcode",
+            body: "Generated client-side, so an officer gets the file instantly, offline, with no server round-trip and no document service to pay for.",
+          },
+          {
+            badge: "Delivery",
+            title: "Vercel + Resend",
+            body: "Custom domain, transactional mail, Google sign-in — live and reachable on any phone in the room today.",
           },
         ],
       },
     ],
     notes:
-      "Demo order: demo label first (guaranteed), then a real pack from a judge. If wi-fi dies, demo mode still works.",
+      "The rule-engine card answers 'why not just use an LLM for everything'. Explainability is a legal requirement here, not a preference.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 09 --------------------------------- */
+  {
+    id: "demo",
+    no: "09",
+    kicker: "Demo & screenshots",
+    title: "This is the running product, not a mockup",
+    blocks: [
+      {
+        kind: "gallery",
+        items: [
+          { src: "/deck/report.jpg", caption: "Verdict, citations and confidence per declaration" },
+          {
+            src: "/deck/declarations.jpg",
+            caption: "A compliant pack, all seven declarations found",
+          },
+          { src: "/deck/pipeline.jpg", caption: "Every detector documented on the live site" },
+        ],
+      },
+      {
+        kind: "note",
+        text: "Offline demo mode is fully hardcoded — no OCR call, no network, no database write — so the live demonstration cannot fail on venue wi-fi.",
+      },
+    ],
+    notes:
+      "Demo order: demo label first (guaranteed), then a real pack handed over by a judge. If wi-fi dies, demo mode still works.",
+  },
+
+  /* --------------------------------- 10 --------------------------------- */
   {
     id: "testing",
-    no: "06",
-    kicker: "Testing results",
+    no: "10",
+    kicker: "Testing & validation",
     title: "What we tested, and the bugs it caught",
     blocks: [
+      {
+        kind: "metrics",
+        items: [
+          { value: "35", label: "Real label transcriptions re-run" },
+          { value: "7/7", label: "Control label, confidences 68-96%" },
+          { value: "0", label: "Rows a cross-user write can touch" },
+          { value: "2.5-3.0s", label: "Measured OCR round-trip" },
+        ],
+      },
       {
         kind: "table",
         head: ["Test", "Method", "Result"],
         rows: [
-          [
-            "Rule engine vs. real labels",
-            "Re-ran all seven detectors over 35 stored label transcriptions",
-            "A fully-declared control label scores 7/7 compliant, confidences 68-96%",
-          ],
           [
             "Detector correctness",
             "Positive and negative cases per declaration, including Devanagari",
@@ -342,13 +469,8 @@ export const DECK: DeckSlide[] = [
             "Caught 7 false positives; added a placeholder blocklist, taking origin detection from 8/35 to 1/35 — the one label that truly declares it",
           ],
           [
-            "Latency",
-            "Timed end-to-end OCR round-trips",
-            "2.5-3.0s for extraction; about 6s from shutter to verdict",
-          ],
-          [
             "Access control",
-            "Signed in as a second account and attempted cross-user reads and writes",
+            "Signed in as a second account, attempted cross-user reads and writes",
             "UPDATE and DELETE on another user's inspection affect 0 rows; anonymous upload returns 403",
           ],
           [
@@ -360,262 +482,231 @@ export const DECK: DeckSlide[] = [
       },
       {
         kind: "note",
-        text: "Honest caveat: the stored corpus is mostly stock mock-up artwork that genuinely omits MRP and manufacture date, so low detection on those fields is the validator correctly refusing blank declarations — not a miss. We report it this way rather than quoting a flattering headline accuracy.",
+        text: "Honest caveat: the stored corpus is mostly stock mock-up artwork that genuinely omits MRP and manufacture date, so low detection on those fields is the validator correctly refusing blank declarations — not a miss.",
       },
     ],
     notes:
       "This slide wins the round. Most teams show a demo; very few can name the bugs their own testing caught. Say the caveat out loud before a judge finds it.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 11 --------------------------------- */
   {
     id: "impact",
-    no: "07",
-    kicker: "Impact metrics",
+    no: "11",
+    kicker: "Impact & benefits",
     title: "Measured today, projected at scale",
     blocks: [
       {
-        kind: "stats",
+        kind: "bars",
+        caption: "Packs one inspector can check per hour",
         items: [
-          { value: "~6s", label: "Photo to verdict (measured)" },
-          { value: "~10×", label: "Throughput vs. a pack a minute (projected)" },
-          { value: "7/7", label: "Declarations cited per inspection" },
-          { value: "100%", label: "Findings carrying a sub-rule reference" },
+          { label: "Manual, by eye", value: 60, display: "~60" },
+          { label: "LabelCheck, single scan", value: 600, display: "~600", accent: true },
+          { label: "LabelCheck, batch of eight", value: 1200, display: "~1,200", accent: true },
         ],
       },
       {
-        kind: "bullets",
+        kind: "cards",
+        cols: 4,
         items: [
           {
-            title: "For the enforcement officer",
-            body: "Roughly ten times the packs per hour, with an identical check every time and a timestamped record that survives an appeal.",
+            badge: "Enforcement",
+            title: "Ten times the packs",
+            body: "An identical check every time, and a timestamped record that survives an appeal.",
           },
           {
-            title: "For the manufacturer",
-            body: "A missing declaration caught at artwork proof instead of after a print run — the cost avoided is a re-print, not a fine.",
+            badge: "Industry",
+            title: "Caught at proof stage",
+            body: "A missing declaration found before the print run — the cost avoided is a re-print, not a fine.",
           },
           {
-            title: "For the marketplace",
-            body: "Pre-listing screening means non-compliant packaging never reaches the storefront, so the violation never reaches a consumer.",
+            badge: "Platform",
+            title: "Never goes live",
+            body: "Pre-listing screening means the violation never reaches a consumer at all.",
           },
           {
-            title: "For the consumer",
-            body: "A public verdict link per pack, so the declarations on a package can be checked by the person buying it.",
+            badge: "Public",
+            title: "Checkable by the buyer",
+            body: "A public verdict link per pack, so declarations can be checked by the person paying.",
           },
         ],
       },
       {
         kind: "note",
-        text: "The 10× figure is a projection from a measured 6s cycle against a one-pack-per-minute manual baseline, not a field study. We label it as such.",
+        text: "The throughput figures are a projection from a measured 6s cycle against a one-pack-per-minute baseline, not a field study. We label it as such rather than presenting it as observed.",
       },
     ],
     notes:
       "Never present the projection as measured. Being the team that distinguishes the two is worth more than the number itself.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 12 --------------------------------- */
   {
-    id: "legal",
-    no: "",
-    kicker: "Legal basis",
-    title: "Seven checks, seven sub-rules",
+    id: "plan",
+    no: "12",
+    kicker: "Implementation plan",
+    title: "How this reaches a Legal Metrology department",
     blocks: [
       {
-        kind: "table",
-        head: ["#", "Declaration", "Sub-rule"],
-        rows: [
-          ["1", "Manufacturer / packer / importer name and address", "Rule 6(1)(a)"],
-          ["2", "Common or generic name of the commodity", "Rule 6(1)(b)"],
-          ["3", "Net quantity in standard units", "Rule 6(1)(c)"],
-          ["4", "Month and year of manufacture / packing", "Rule 6(1)(d)"],
-          ["5", "Retail sale price, inclusive of all taxes", "Rule 6(1)(e)"],
-          ["6", "Consumer care details", "Rule 6(1)(f)"],
-          ["7", "Country of origin", "Rule 6(1)(g)"],
+        kind: "timeline",
+        items: [
+          {
+            when: "Phase 1",
+            title: "Shipped",
+            body: "Rule 6 engine, single and batch scanning, cited PDFs, QR share links, per-user audit history — live in production today.",
+          },
+          {
+            when: "Phase 2",
+            title: "Pilot",
+            body: "One district office. Officer accounts and roles, a consolidated CSV compliance sheet for an enforcement drive.",
+          },
+          {
+            when: "Phase 3",
+            title: "Integrate",
+            body: "Regional scripts, and a marketplace API so a catalogue is pre-checked before any listing goes live.",
+          },
+          {
+            when: "Phase 4",
+            title: "Scale",
+            body: "State-wide rollout, MRP range cross-checks and lookups against government registration databases.",
+          },
         ],
       },
       {
         kind: "note",
-        text: "Framed under the Legal Metrology Act, 2009. Six declarations are verdict-critical; country of origin is mandatory for imported packages and is always reported. LabelCheck is a decision-support tool — the statutory determination remains with the officer.",
+        text: "Phase 1 is not a promise — it is deployed and reachable at sih.anshguptaa.in right now. The remaining phases are scope, not risk.",
       },
     ],
-    notes:
-      "If a judge questions legal correctness, this slide plus the live /how-it-works page, which renders each detector, is the answer.",
+    notes: "Emphasise that phase 1 is already done. Most teams present phase 1 as future work.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 13 --------------------------------- */
   {
-    id: "edge",
-    no: "",
-    kicker: "Why it survives scrutiny",
-    title: "Built to be challenged",
+    id: "future",
+    no: "13",
+    kicker: "Future scope",
+    title: "Where it goes, and what we have not solved",
     blocks: [
       {
-        kind: "bullets",
+        kind: "cards",
+        cols: 3,
         items: [
           {
-            title: "Cited, not guessed",
-            body: "Every check maps to a specific sub-rule from (a) to (g), reported with the clause and a plain-language reason.",
+            badge: "Languages",
+            title: "Regional scripts",
+            body: "Tamil, Telugu, Bengali, Marathi and Gujarati. The vision model already reads them — it is a prompt and a test set, not a rewrite.",
           },
           {
-            title: "Auditable, not a black box",
-            body: "Per-field confidence plus the raw transcription and the matched substring, on every report.",
+            badge: "Scale",
+            title: "Whole-catalogue checks",
+            body: "Bulk upload with a per-SKU compliance sheet, and listing-URL scanning for the declarations Rule 6 requires online sellers to display.",
           },
           {
-            title: "Human in the loop",
-            body: "Any field is correctable; the verdict recomputes and the correction is saved against the record.",
+            badge: "Enforcement",
+            title: "Officer case files",
+            body: "Roles, assignment and a case record per inspection, so a finding travels from the shelf to the hearing.",
           },
           {
-            title: "Validation, not presence",
-            body: "A blank price, ₹0, 0 g or an impossible date fails. Detecting the words is not the same as verifying the declaration.",
+            badge: "The gap",
+            title: "Fraud detection",
+            body: "Nothing here detects a forged but compliant-looking label. That needs MRP range checks and government registration lookups — named, not hidden.",
           },
           {
-            title: "Presentation-proof",
-            body: "Demo mode is fully hardcoded — no OCR, no network, identical on every run.",
+            badge: "Rules",
+            title: "Beyond Rule 6",
+            body: "FSSAI licence numbers, 'best before' dates and Chapter II display rules are each one new rule object.",
           },
           {
-            title: "Extensible",
-            body: "New regulations are new rule objects. The engine does not change shape when the law does.",
-          },
-        ],
-      },
-    ],
-    notes: "Six one-liners. Do not read them all — pick the two the judges have been probing.",
-  },
-
-  /* ------------------------------------------------------------------ */
-  {
-    id: "risks",
-    no: "",
-    kicker: "Feasibility & risk",
-    title: "What can go wrong, and what we did about it",
-    blocks: [
-      {
-        kind: "table",
-        head: ["Risk", "Mitigation"],
-        rows: [
-          [
-            "A forged but compliant-looking label passes",
-            "Out of scope, and we say so. Rule 6 requires the declarations to be present and valid; forgery detection needs officer accounts, MRP range checks and government registration lookups. We are the scalable first line, not a fraud detector.",
-          ],
-          [
-            "OCR misreads a blurry or curved pack",
-            "Per-field confidence is shown, the raw text is exposed, and any field is correctable in place with the verdict recomputing.",
-          ],
-          [
-            "Regional-language packaging",
-            "English and Hindi with Devanagari today. The vision model already reads Tamil, Telugu, Bengali, Marathi and Gujarati — adding them is a prompt and a test set, not a rewrite.",
-          ],
-          [
-            "Venue network failure during the demo",
-            "Demo mode is fully local: hardcoded labels, no OCR call, no database write.",
-          ],
-          [
-            "Model provider outage or price change",
-            "The endpoint and model are two environment variables. Any OpenAI-compatible vision provider can be swapped in without a code change.",
-          ],
-          [
-            "Rules change when the law changes",
-            "Declarations are data. A new or amended rule is one object added to the rules array.",
-          ],
-        ],
-      },
-    ],
-    notes:
-      "Name the forgery limit first, before a judge does. Volunteering the weakness is what makes the rest of the deck credible.",
-  },
-
-  /* ------------------------------------------------------------------ */
-  {
-    id: "roadmap",
-    no: "",
-    kicker: "Roadmap",
-    title: "From prototype to enforcement infrastructure",
-    blocks: [
-      {
-        kind: "steps",
-        items: [
-          {
-            title: "Now",
-            body: "Single and batch scanning, cited PDFs, QR share links, per-user audit history — live in production.",
-          },
-          {
-            title: "Next",
-            body: "Regional scripts, whole-catalogue uploads with a per-SKU CSV compliance sheet for enforcement drives.",
-          },
-          {
-            title: "Then",
-            body: "A marketplace API for pre-listing checks, and listing-URL scanning for the declarations Rule 6 requires online sellers to display.",
-          },
-          {
-            title: "Later",
-            body: "Officer roles and case files, MRP range cross-checks, and lookups against government registration databases — the fraud layer.",
-          },
-        ],
-      },
-    ],
-    notes: "Note that the 'later' column is exactly the forgery gap named on the risk slide.",
-  },
-
-  /* ------------------------------------------------------------------ */
-  {
-    id: "sustain",
-    no: "",
-    kicker: "Sustainability",
-    title: "What it costs and who pays",
-    blocks: [
-      {
-        kind: "bullets",
-        items: [
-          {
-            title: "Marginal cost is one model call",
-            body: "A scan is a single vision-model request plus a row in Postgres. There is no per-seat licence and no dedicated hardware.",
-          },
-          {
-            title: "Government deployment",
-            body: "Free at the point of use for Legal Metrology officers, funded as enforcement infrastructure — the cost of an inspection falls rather than rises.",
-          },
-          {
-            title: "Commercial deployment",
-            body: "Per-check API pricing for marketplaces and manufacturers pre-screening catalogues at volume.",
-          },
-          {
-            title: "Runs on free tiers today",
-            body: "The live deployment costs nothing beyond model usage, which is what makes a nationwide pilot practical rather than aspirational.",
+            badge: "Access",
+            title: "Offline-first field app",
+            body: "Queue scans without connectivity and sync when the officer is back in signal.",
           },
         ],
       },
     ],
     notes:
-      "Only raise pricing if asked. The point to land is that the marginal cost per inspection is a fraction of a rupee.",
+      "Name the forgery limit yourself, before a judge does. Volunteering the weakness is what makes the rest credible.",
   },
 
-  /* ------------------------------------------------------------------ */
+  /* --------------------------------- 14 --------------------------------- */
   {
     id: "team",
-    no: "",
+    no: "14",
     kicker: `Team ${DECK_META.team}`,
-    title: "Built by six, shipped to production",
+    title: "Team & roles",
     blocks: [
       {
-        kind: "lead",
-        text: `${DECK_META.event} · Problem statement ${DECK_META.problemId} · ${DECK_META.ministry}`,
-      },
-      {
-        kind: "bullets",
+        kind: "cards",
+        cols: 3,
         items: [
-          { title: "Team leader", body: DECK_META.leader },
-          { title: "Members", body: DECK_META.members.join(" · ") },
           {
-            title: "Try it now",
-            body: `${DECK_META.url} — scan a pack from your own pocket, on your own phone.`,
+            badge: "Team leader",
+            title: DECK_META.leader,
+            body: "Rule engine, architecture, deployment",
           },
+          { badge: "Member", title: "Dasari Aarya Nandan", body: "Frontend & interface design" },
+          { badge: "Member", title: "Archi Data", body: "Research & legal mapping of Rule 6" },
+          { badge: "Member", title: "Akshaj Kumar", body: "Backend & database" },
+          { badge: "Member", title: "Bhumi Dwivedi", body: "Testing & validation" },
+          { badge: "Member", title: "Eshan Thakur", body: "Documentation & presentation" },
         ],
       },
       {
         kind: "note",
-        text: "Don't just present an idea. We built it, tested it, found our own bugs, and fixed them.",
+        text: `${DECK_META.event}  ·  Problem statement ${DECK_META.problemId}  ·  ${DECK_META.ministry}`,
       },
     ],
-    notes: "Close on the live URL. Invite a judge to scan something you have never seen.",
+    notes: "Adjust the role lines to match what each teammate actually owned before you present.",
+  },
+
+  /* --------------------------------- 15 --------------------------------- */
+  {
+    id: "conclusion",
+    no: "15",
+    kicker: "Conclusion",
+    title: "Don't just present an idea — prove it works",
+    blocks: [
+      {
+        kind: "cards",
+        cols: 4,
+        items: [
+          {
+            badge: "Built",
+            title: "Live in production",
+            body: "Deployed on our own domain, reachable from any phone in this room.",
+          },
+          {
+            badge: "Tested",
+            title: "Bugs we found ourselves",
+            body: "Ten, from our own test suite — and we put them on a slide rather than hiding them.",
+          },
+          {
+            badge: "Cited",
+            title: "Every verdict traceable",
+            body: "Each finding carries the exact Rule 6(1) sub-rule it derives from.",
+          },
+          {
+            badge: "Honest",
+            title: "Limits named",
+            body: "We say what we do not solve, and show exactly where it sits on the roadmap.",
+          },
+        ],
+      },
+      {
+        kind: "metrics",
+        items: [
+          { value: "7", label: "Rule 6(1) detectors shipped" },
+          { value: "35", label: "Real labels validated against" },
+          { value: "~6s", label: "Photo to cited verdict" },
+          { value: "Live", label: "sih.anshguptaa.in" },
+        ],
+      },
+      {
+        kind: "note",
+        text: "Scan a pack from your own pocket, on your own phone, at sih.anshguptaa.in — we have never seen it, and the verdict will cite its sub-rules in about six seconds.",
+      },
+    ],
+    notes:
+      "Close on the live URL. Invite a judge to scan something you have never seen. That is the moment that wins it.",
   },
 ];
