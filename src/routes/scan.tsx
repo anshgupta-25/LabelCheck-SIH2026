@@ -27,7 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { analyseLabel } from "@/lib/compliance";
+import { analyseLabel, type FieldResult } from "@/lib/compliance";
+import { detectBarcode } from "@/lib/barcode";
+import { lookupProductByBarcode } from "@/lib/product-lookup";
+import { crossCheckProduct } from "@/lib/barcode-crosscheck";
+import { toScanBarcode, type ScanBarcode } from "@/lib/barcode-report";
 import { DEMO_LABELS, getDemoLabel, demoReportId } from "@/lib/demo-labels";
 import { createScan, uploadLabelImage } from "@/lib/scans";
 import { extractLabelText } from "@/lib/ocr.functions";
@@ -84,6 +88,38 @@ interface Item {
   missing?: string[] | undefined;
   scanId?: string | undefined;
   error?: string | undefined;
+}
+
+/**
+ * Barcode side of the pipeline: decode, then look the code up.
+ *
+ * Kicked off alongside the OCR request rather than after it, so the decode and
+ * the lookup both happen inside the 2.5-3s the vision model already takes and
+ * cost the scan no extra wall-clock time. Every failure is swallowed — a scan
+ * must never fail because a pack has no barcode or the database is down.
+ */
+async function runBarcode(file: File): Promise<ScanBarcode | null> {
+  try {
+    const result = await detectBarcode(file);
+    if (!result.detected || !result.value) {
+      return result.error ? toScanBarcode(result) : null;
+    }
+    const lookup = await lookupProductByBarcode(result.value);
+    return toScanBarcode(result, lookup);
+  } catch (err) {
+    console.error("[LabelCheck] barcode stage failed", err);
+    return null;
+  }
+}
+
+/** Adds the OCR-vs-database comparison once both halves are known. */
+function withCrossChecks(
+  barcode: ScanBarcode | null,
+  fields: FieldResult[],
+  text: string,
+): ScanBarcode | null {
+  if (!barcode?.lookup?.product) return barcode;
+  return { ...barcode, crossChecks: crossCheckProduct(barcode.lookup.product, fields, text) };
 }
 
 function ScanPage() {
@@ -186,7 +222,11 @@ function ScanPage() {
   async function scanOne(file: File) {
     const dataUrl = await fileToDataUrl(file);
     const imagePath = await uploadLabelImage(file, file.type.includes("png") ? "png" : "jpg");
-    const { text } = await extractLabelText({ data: { imageDataUrl: dataUrl, language } });
+    // Barcode runs in parallel with extraction; it never gates the result.
+    const [{ text }, barcode] = await Promise.all([
+      extractLabelText({ data: { imageDataUrl: dataUrl, language } }),
+      runBarcode(file),
+    ]);
     if (!text.trim()) {
       throw new Error(
         "No text could be read from that photo. Try better lighting or a closer shot.",
@@ -202,6 +242,7 @@ function ScanPage() {
       productName,
       source: "upload",
       fields: report.fields,
+      barcode: withCrossChecks(barcode, report.fields, text),
     });
     return { report, productName, scanId };
   }
@@ -216,7 +257,10 @@ function ScanPage() {
         item.file.type.includes("png") ? "png" : "jpg",
       );
       setStage(1);
-      const { text } = await extractLabelText({ data: { imageDataUrl: dataUrl, language } });
+      const [{ text }, barcode] = await Promise.all([
+        extractLabelText({ data: { imageDataUrl: dataUrl, language } }),
+        runBarcode(item.file),
+      ]);
       if (!text.trim()) {
         throw new Error(
           "No text could be read from that photo. Try better lighting or a closer shot.",
@@ -234,6 +278,7 @@ function ScanPage() {
         productName: report.fields.find((f) => f.key === "commodity_name")?.value ?? null,
         source: "upload",
         fields: report.fields,
+        barcode: withCrossChecks(barcode, report.fields, text),
       });
       await navigate({ to: "/report/$id", params: { id: scanId } });
     } catch (e) {

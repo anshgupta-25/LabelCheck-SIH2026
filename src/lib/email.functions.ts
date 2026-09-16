@@ -7,24 +7,62 @@
  * loaded lazily so none of it reaches the client bundle.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 import type { FieldResult } from "./compliance";
+
+interface ScanRowLite {
+  id: string;
+  owner_id: string | null;
+  product_name: string | null;
+  verdict: string;
+  field_results: FieldResult[] | null;
+}
 import { demoScanRow } from "./demo-labels";
 
-async function userFromToken(accessToken: string) {
+interface TokenUser {
+  id: string;
+  email?: string | undefined;
+  user_metadata?: Record<string, unknown>;
+}
+
+/** Supabase REST credentials plus the caller's token, for RLS-scoped reads. */
+interface ServerSupabase {
+  url: string;
+  headers: Record<string, string>;
+}
+
+function serverSupabase(accessToken: string): ServerSupabase {
   const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
   const key =
     process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
   if (!url || !key) throw new Error("Supabase is not configured on the server.");
-  const client = createClient<Database>(url, key, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
-  const { data, error } = await client.auth.getUser(accessToken);
-  if (error || !data.user) throw new Error("You need to be signed in to do that.");
-  return { client, user: data.user };
+  return {
+    url: url.replace(/\/$/, ""),
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  };
+}
+
+/**
+ * Verifies the caller's access token.
+ *
+ * Deliberately a plain REST call rather than createClient(): supabase-js
+ * constructs a realtime client on construction, which throws outright on
+ * Node < 22 ("native WebSocket not found") and took the whole mail path down
+ * with it. We only ever needed getUser and one row read, so two fetches
+ * remove an entire class of runtime fragility. RLS still applies — every
+ * request carries the user's own bearer token.
+ */
+export async function userFromToken(accessToken: string) {
+  const sb = serverSupabase(accessToken);
+  const res = await fetch(`${sb.url}/auth/v1/user`, { headers: sb.headers });
+  if (!res.ok) throw new Error("You need to be signed in to do that.");
+  const user = (await res.json()) as TokenUser | null;
+  if (!user?.id) throw new Error("You need to be signed in to do that.");
+  return { sb, user };
 }
 
 function nameOf(user: { email?: string | undefined; user_metadata?: Record<string, unknown> }) {
@@ -68,7 +106,7 @@ const reportInput = z.object({
 export const emailReport = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => reportInput.parse(d))
   .handler(async ({ data }) => {
-    const { client, user } = await userFromToken(data.accessToken);
+    const { sb, user } = await userFromToken(data.accessToken);
 
     // Demo reports live only in the bundle, so build the message from the
     // fixture. Sending still needs a signed-in caller — otherwise this would
@@ -82,17 +120,20 @@ export const emailReport = createServerFn({ method: "POST" })
       fields = demo.field_results;
     } else {
       if (!/^[0-9a-f-]{36}$/i.test(data.scanId)) throw new Error("Report not found.");
-      const { data: row, error } = await client
-        .from("scans")
-        .select("id, owner_id, product_name, verdict, field_results")
-        .eq("id", data.scanId)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
+      const query = new URLSearchParams({
+        id: `eq.${data.scanId}`,
+        select: "id,owner_id,product_name,verdict,field_results",
+        limit: "1",
+      });
+      const res = await fetch(`${sb.url}/rest/v1/scans?${query}`, { headers: sb.headers });
+      if (!res.ok) throw new Error(`Report lookup failed (${res.status}).`);
+      const rows = (await res.json()) as ScanRowLite[];
+      const row = rows[0];
       if (!row) throw new Error("Report not found.");
       if (row.owner_id !== user.id)
         throw new Error("Only the inspector who created a report can e-mail it.");
       scan = { id: row.id, product_name: row.product_name, verdict: row.verdict };
-      fields = (row.field_results as unknown as FieldResult[]) ?? [];
+      fields = row.field_results ?? [];
     }
 
     const missing = fields.filter((f) => f.critical && !f.found).map((f) => f.label);

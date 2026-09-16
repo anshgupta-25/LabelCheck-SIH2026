@@ -14,6 +14,7 @@
  * anything had to be removed.
  */
 import { jsPDF } from "jspdf";
+import type { ScanBarcode } from "./barcode-report";
 import QRCode from "qrcode";
 import type { FieldResult, Verdict } from "./compliance";
 
@@ -58,6 +59,12 @@ export interface ReportPdfInput {
   ocrQuality: number;
   /** Override for the header mark; defaults to the site favicon. */
   logoUrl?: string;
+  /**
+   * Barcode identity signal. Printed in its own section, clearly separated
+   * from the Rule 6 findings, because a barcode is not a mandatory
+   * declaration and must not read as an eighth check.
+   */
+  barcode?: ScanBarcode | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -627,6 +634,108 @@ function drawFooters(p: Painter) {
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Barcode and product-identity section.
+ *
+ * Deliberately after the violations and visually separate: this is an identity
+ * cross-check, not a Rule 6 finding, and the caption says so on the page so a
+ * reader cannot mistake a mismatch for a statutory breach.
+ */
+function drawBarcode(p: Painter, input: ReportPdfInput) {
+  const bc = input.barcode;
+  if (!bc) return;
+
+  p.ensure(120);
+  p.y += 10;
+  p.font("bold", 13, INK);
+  p.text("Barcode & product identity", M, p.y);
+  p.y += 14;
+  p.font("normal", 8, MUTED);
+  p.text(
+    "Informational. A barcode is not a declaration required by Rule 6, and nothing here affects the compliance verdict above.",
+    M,
+    p.y,
+  );
+  p.y += 16;
+
+  if (!bc.detected || !bc.value) {
+    p.card(M, p.y, p.contentW, 34, CARD_ALT);
+    p.font("normal", 9.5, MUTED);
+    p.text(sanitise(bc.error || "No barcode was found on this label.").text, M + 12, p.y + 21);
+    p.y += 44;
+    return;
+  }
+
+  // Code + format
+  const boxH = 46;
+  p.card(M, p.y, p.contentW, boxH, CARD);
+  p.font("normal", 7.5, MUTED);
+  p.text("BARCODE NUMBER", M + 12, p.y + 15);
+  p.mono(14, INK);
+  p.text(sanitise(bc.value).text, M + 12, p.y + 33);
+  p.font("normal", 7.5, MUTED);
+  p.text("FORMAT", M + p.contentW * 0.55, p.y + 15);
+  p.font("bold", 11, INK);
+  p.text(sanitise(bc.format || "Unknown").text, M + p.contentW * 0.55, p.y + 32);
+  p.y += boxH + 10;
+
+  // Product database
+  const product = bc.lookup?.product ?? null;
+  p.font("bold", 9.5, INK);
+  p.text("Product database", M, p.y);
+  p.y += 13;
+  p.font("normal", 9, INK_SOFT);
+  if (product) {
+    const line = [product.name, product.brand, product.quantity].filter(Boolean).join("  -  ");
+    for (const l of p.wrap(sanitise(line || "Unnamed product").text, p.contentW)) {
+      p.text(l, M, p.y);
+      p.y += 12;
+    }
+    p.font("normal", 8, MUTED);
+    p.text(sanitise(`Source: ${product.source}`).text, M, p.y);
+    p.y += 14;
+  } else {
+    const msg = bc.lookup?.message || "Product database information is unavailable.";
+    for (const l of p.wrap(sanitise(msg).text, p.contentW)) {
+      p.text(l, M, p.y);
+      p.y += 12;
+    }
+    p.y += 4;
+  }
+
+  // Cross-check rows
+  const rows = bc.crossChecks ?? [];
+  if (!rows.length) return;
+  p.ensure(30 + rows.length * 16);
+  p.font("bold", 9.5, INK);
+  p.text("Cross-check against the label", M, p.y);
+  p.y += 14;
+
+  for (const r of rows) {
+    const tone = r.status === "match" ? GREEN : r.status === "mismatch" ? AMBER : MUTED;
+    const soft =
+      r.status === "match" ? GREEN_SOFT : r.status === "mismatch" ? AMBER_SOFT : CARD_ALT;
+    const mark = r.status === "match" ? "OK" : r.status === "mismatch" ? "!" : "-";
+    p.pill(mark, M, p.y + 3, tone, soft);
+    p.font("bold", 9, INK);
+    p.text(sanitise(r.label).text, M + 34, p.y + 6);
+    p.font("normal", 8.5, MUTED);
+    const detail =
+      r.status === "mismatch"
+        ? `pack reads "${r.observed ?? "nothing"}", database has "${r.expected}"`
+        : r.status === "match"
+          ? "matches"
+          : (r.note ?? "not comparable");
+    p.text(sanitise(detail).text, M + 130, p.y + 6);
+    p.y += 16;
+  }
+
+  p.y += 4;
+  p.font("italic", 7.5, MUTED);
+  p.text("A mismatch is a lead for an inspector, not a Rule 6 violation.", M, p.y);
+  p.y += 12;
+}
+
 /** Builds the document; callers decide whether to save or preview it. */
 export async function buildReportPdf(input: ReportPdfInput): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
@@ -643,6 +752,7 @@ export async function buildReportPdf(input: ReportPdfInput): Promise<jsPDF> {
   await drawMediaRow(p, input, img);
   drawTable(p, input);
   drawViolations(p, input);
+  drawBarcode(p, input);
   drawAppendix(p, input);
   drawFooters(p);
 

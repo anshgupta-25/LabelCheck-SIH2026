@@ -1,6 +1,7 @@
 /** Persistence helpers for label inspections. */
 import { supabase } from "@/integrations/supabase/client";
 import type { FieldResult, Verdict } from "./compliance";
+import type { ScanBarcode } from "./barcode-report";
 
 export interface ScanRow {
   id: string;
@@ -14,6 +15,12 @@ export interface ScanRow {
   field_results: FieldResult[];
   /** auth.users id of the inspector who created it; null for legacy rows. */
   owner_id: string | null;
+  /**
+   * Barcode detection, lookup and cross-check. Null when no barcode was found
+   * or the scan predates the feature. Informational: it never affects the
+   * Rule 6 verdict.
+   */
+  barcode?: ScanBarcode | null;
 }
 
 const BUCKET = "label-images";
@@ -41,6 +48,16 @@ export async function signedImageUrl(path: string | null): Promise<string | null
   return data?.signedUrl ?? null;
 }
 
+/**
+ * PostgREST reports an unknown column as PGRST204. We treat that specific
+ * failure as "this deployment has not run the barcode migration yet" and
+ * retry without the column, so a label check never fails because of an
+ * optional feature. Any other error is a real error and propagates.
+ */
+export function isMissingBarcodeColumn(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST204" || /barcode.*column|column .*barcode/i.test(error.message ?? "");
+}
+
 export async function createScan(input: {
   imagePath: string | null;
   extractedText: string;
@@ -49,24 +66,38 @@ export async function createScan(input: {
   productName: string | null;
   source: "upload" | "demo";
   fields: FieldResult[];
+  barcode?: ScanBarcode | null;
 }): Promise<string> {
-  const { data, error } = await supabase
+  const base = {
+    image_url: input.imagePath,
+    extracted_text: input.extractedText,
+    language: input.language,
+    verdict: input.verdict,
+    product_name: input.productName,
+    source: input.source,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    field_results: input.fields as any,
+  };
+
+  const first = await supabase
     .from("scans")
-    .insert({
-      image_url: input.imagePath,
-      extracted_text: input.extractedText,
-      language: input.language,
-      verdict: input.verdict,
-      product_name: input.productName,
-      source: input.source,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      field_results: input.fields as any,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert({ ...base, barcode: (input.barcode ?? null) as any })
     .select("id")
     .single();
 
-  if (error) throw new Error(error.message);
-  return data.id;
+  if (!first.error) return first.data.id;
+
+  if (isMissingBarcodeColumn(first.error)) {
+    console.warn(
+      "[LabelCheck] scans.barcode column is missing — run the barcode migration. Saving without it.",
+    );
+    const retry = await supabase.from("scans").insert(base).select("id").single();
+    if (retry.error) throw new Error(retry.error.message);
+    return retry.data.id;
+  }
+
+  throw new Error(first.error.message);
 }
 
 export async function getScan(id: string): Promise<ScanRow | null> {

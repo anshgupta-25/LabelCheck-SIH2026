@@ -8,6 +8,7 @@
 
 import { RULES, type FieldResult, type RuleKey, type Verdict } from "./compliance";
 import type { ScanRow } from "./scans";
+import type { ScanBarcode } from "./barcode-report";
 import compliantImage from "@/assets/demo-label-compliant.jpg";
 import nonCompliantImage from "@/assets/demo-label-non-compliant.jpg";
 
@@ -25,6 +26,12 @@ export interface DemoLabel {
   fields: FieldResult[];
   verdict: Verdict;
   ocrQuality: number;
+  /**
+   * Fixed barcode result. Demo Mode never calls the decoder or the product
+   * database, so the whole barcode flow is reproducible with no network —
+   * including on a dead venue connection.
+   */
+  barcode?: ScanBarcode;
 }
 
 type Outcome = { value: string; confidence: number; matchedBy: string } | null;
@@ -184,6 +191,28 @@ export function demoReportId(labelId: DemoLabel["id"]): string {
  * runs on stage — so nothing here touches Supabase. Returns null for any id
  * that is not a demo, letting the caller fall back to a real lookup.
  */
+
+/**
+ * Demo Mode barcode. A structurally valid EAN-13 — 890 is the GS1 India
+ * prefix and the check digit is correct — but deliberately not a registered
+ * product, because the demo packs are fictional and we will not invent
+ * product-database entries for them. It exercises the honest, and most
+ * common, real-world path: a barcode reads cleanly, and the database has
+ * nothing on it.
+ */
+const DEMO_BARCODE: ScanBarcode = {
+  detected: true,
+  value: "8900000000005",
+  format: "EAN-13",
+  confidence: null,
+  lookup: {
+    status: "not_found",
+    product: null,
+    message:
+      "Barcode detected, but this product is not listed in the configured database. That is not evidence of a problem with the pack.",
+  },
+};
+
 export function demoScanRow(id: string): ScanRow | null {
   if (!id.startsWith(DEMO_REPORT_PREFIX)) return null;
   const label = getDemoLabel(id.slice(DEMO_REPORT_PREFIX.length));
@@ -199,5 +228,8 @@ export function demoScanRow(id: string): ScanRow | null {
     source: "demo",
     field_results: label.fields,
     owner_id: null,
+    // The compliant pack carries a barcode; the non-compliant one does not,
+    // so a demo shows both the detected and the not-detected states.
+    barcode: label.id === "compliant" ? DEMO_BARCODE : null,
   };
 }
