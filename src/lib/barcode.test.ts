@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { readBarcodes } from "zxing-wasm/reader";
-import { gs1Origin, isValidGtin, normaliseFormat } from "./barcode";
+import { gs1Origin, isValidGtin, normaliseFormat, tileRects } from "./barcode";
 import { crossCheckProduct, summariseCrossChecks } from "./barcode-crosscheck";
 import { lookupProductByBarcode } from "./product-lookup";
 import { isMissingBarcodeColumn } from "./scans";
@@ -394,5 +394,73 @@ describe("missing barcode column", () => {
     expect(isMissingBarcodeColumn({ message: "new row violates row-level security policy" })).toBe(
       false,
     );
+  });
+});
+
+describe("small barcode in a large photo", () => {
+  /** Paints a barcode into a big frame, optionally rotated a quarter turn. */
+  function inPhoto(W: number, H: number, bc: Bitmap, ox: number, oy: number, rot: boolean): Bitmap {
+    const data = new Uint8ClampedArray(W * H * 4).fill(238);
+    for (let i = 3; i < data.length; i += 4) data[i] = 255;
+    for (let y = 0; y < bc.height; y++)
+      for (let x = 0; x < bc.width; x++) {
+        const v = bc.data[(y * bc.width + x) * 4]!;
+        if (v > 128) continue;
+        const px = rot ? ox + y : ox + x;
+        const py = rot ? oy + x : oy + y;
+        if (px < 0 || py < 0 || px >= W || py >= H) continue;
+        const o = (py * W + px) * 4;
+        data[o] = 0;
+        data[o + 1] = 0;
+        data[o + 2] = 0;
+      }
+    return { data, width: W, height: H };
+  }
+
+  /** Crops a region 1:1, the way regionData does in the browser. */
+  function crop(img: Bitmap, r: { sx: number; sy: number; sw: number; sh: number }): Bitmap {
+    const out = new Uint8ClampedArray(r.sw * r.sh * 4);
+    for (let y = 0; y < r.sh; y++)
+      for (let x = 0; x < r.sw; x++) {
+        const src = ((y + r.sy) * img.width + (x + r.sx)) * 4;
+        const dst = (y * r.sw + x) * 4;
+        out[dst] = img.data[src]!;
+        out[dst + 1] = img.data[src + 1]!;
+        out[dst + 2] = img.data[src + 2]!;
+        out[dst + 3] = 255;
+      }
+    return { data: out, width: r.sw, height: r.sh };
+  }
+
+  it("recovers a 90°-rotated barcode occupying ~2% of a 4032px photo", async () => {
+    // The Kinley bottle case: the symbol is tiny relative to the frame and
+    // turned on its side. Scanning the whole frame finds nothing; reading a
+    // tile at native resolution does.
+    const bc = syntheticEan13(SAMPLE, { scale: 1, quiet: 10 });
+    const photo = inPhoto(4032, 3024, { ...bc, height: 230 }, 3100, 900, true);
+
+    let found: string[] = [];
+    for (const rect of tileRects(photo.width, photo.height)) {
+      const hits = await read(crop(photo, rect));
+      if (hits.length) {
+        found = hits.map((h) => h.text);
+        break;
+      }
+    }
+    expect(found).toContain(SAMPLE);
+  });
+
+  it("tiles cover the whole frame and overlap at the seams", () => {
+    const rects = tileRects(1000, 800);
+    expect(rects.length).toBe(9);
+    // every pixel of the frame falls inside at least one tile
+    expect(Math.min(...rects.map((r) => r.sx))).toBe(0);
+    expect(Math.min(...rects.map((r) => r.sy))).toBe(0);
+    expect(Math.max(...rects.map((r) => r.sx + r.sw))).toBe(1000);
+    expect(Math.max(...rects.map((r) => r.sy + r.sh))).toBe(800);
+    // neighbouring tiles overlap rather than merely abutting
+    const first = rects[0]!;
+    const second = rects[1]!;
+    expect(second.sx).toBeLessThan(first.sx + first.sw);
   });
 });

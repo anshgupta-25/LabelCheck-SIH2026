@@ -54,31 +54,63 @@ export const NO_BARCODE: BarcodeResult = {
   confidence: null,
 };
 
-/** Longest edge we hand to the decoder; bigger costs time and finds no more. */
-const MAX_EDGE = 1600;
+/**
+ * Memory bound, not a quality choice.
+ *
+ * Resolution is everything for a 1-D barcode: an EAN-13 is 95 modules wide, so
+ * a symbol occupying 2% of a 4032px phone photo is about 95px — barely one
+ * pixel per module. Downscaling such a photo to 1600px made it undecodable,
+ * which is exactly how a real bottle label failed. We now decode at native
+ * resolution and cap only for memory on very large captures.
+ */
+const MAX_EDGE = 4096;
+
+/** Below this the whole frame already carries enough detail to skip tiling. */
+const TILE_MIN_EDGE = 1600;
+
+export interface TileRect {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+}
 
 /**
- * Draws the image into a canvas, downscaling if needed.
- * Returns null when the browser cannot decode the file at all.
+ * Overlapping crop rectangles covering the frame.
+ *
+ * When a symbol is small inside a large photo, cropping to a region and
+ * reading it at native resolution restores the pixels-per-module the decoder
+ * needs. The overlap keeps a barcode that straddles a boundary wholly inside
+ * at least one tile.
  */
-async function toImageData(file: Blob): Promise<ImageData | null> {
-  const bitmap = await createImageBitmap(file).catch(() => null);
-  if (!bitmap) return null;
+export function tileRects(w: number, h: number, cols = 3, rows = 3, overlap = 0.2): TileRect[] {
+  const tw = w / cols;
+  const th = h / rows;
+  const ox = tw * overlap;
+  const oy = th * overlap;
+  const out: TileRect[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const sx = Math.max(0, Math.round(c * tw - ox));
+      const sy = Math.max(0, Math.round(r * th - oy));
+      const sw = Math.min(w - sx, Math.round(tw + ox * 2));
+      const sh = Math.min(h - sy, Math.round(th + oy * 2));
+      if (sw > 16 && sh > 16) out.push({ sx, sy, sw, sh });
+    }
+  }
+  return out;
+}
 
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const w = Math.max(1, Math.round(bitmap.width * scale));
-  const h = Math.max(1, Math.round(bitmap.height * scale));
-
+/** Draws a region of the bitmap into a canvas and returns its pixels. */
+function regionData(bitmap: ImageBitmap, rect: TileRect, scale = 1): ImageData | null {
+  const w = Math.max(1, Math.round(rect.sw * scale));
+  const h = Math.max(1, Math.round(rect.sh * scale));
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) {
-    bitmap.close();
-    return null;
-  }
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close();
+  if (!ctx) return null;
+  ctx.drawImage(bitmap, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, w, h);
   return ctx.getImageData(0, 0, w, h);
 }
 
@@ -129,30 +161,41 @@ function normalise(r: { text?: string; bytes?: unknown; format?: string }): {
  * label check carries on exactly as it would without this module.
  */
 export async function detectBarcode(file: Blob): Promise<BarcodeResult> {
+  let bitmap: ImageBitmap | null = null;
   try {
-    const image = await toImageData(file);
-    if (!image)
+    bitmap = await createImageBitmap(file).catch(() => null);
+    if (!bitmap) {
       return { ...NO_BARCODE, error: "The image could not be read for barcode scanning." };
+    }
 
     const { readBarcodes } = await import("zxing-wasm/reader");
+    const read = async (img: ImageData, tryHarder: boolean) =>
+      readBarcodes(img, { tryRotate: true, tryInvert: true, maxNumberOfSymbols: 4, tryHarder });
 
-    // Pass 1: fast. Covers a clean, roughly upright barcode.
-    let results = await readBarcodes(image, {
-      tryHarder: false,
-      tryRotate: true,
-      tryInvert: true,
-      maxNumberOfSymbols: 4,
-    });
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = Math.min(1, MAX_EDGE / longest);
+    const whole: TileRect = { sx: 0, sy: 0, sw: bitmap.width, sh: bitmap.height };
 
-    // Pass 2: only when pass 1 found nothing. tryHarder is markedly slower, so
-    // clear photos never pay for it — blurry or angled ones get the second look.
-    if (!results.length) {
-      results = await readBarcodes(image, {
-        tryHarder: true,
-        tryRotate: true,
-        tryInvert: true,
-        maxNumberOfSymbols: 4,
-      });
+    // Pass 1: the whole frame at native resolution. Fast, and sufficient
+    // whenever the barcode is a reasonable share of the photo.
+    const full = regionData(bitmap, whole, scale);
+    if (!full) {
+      return { ...NO_BARCODE, error: "The image could not be read for barcode scanning." };
+    }
+    let results = await read(full, false);
+
+    // Pass 2: the same frame, harder. Buys angled, blurry and low-contrast symbols.
+    if (!results.length) results = await read(full, true);
+
+    // Pass 3: a small symbol in a big photo survives neither the memory cap nor
+    // a coarse scan of the whole frame, so crop tiles and read each at 1:1.
+    if (!results.length && longest > TILE_MIN_EDGE) {
+      for (const rect of tileRects(bitmap.width, bitmap.height)) {
+        const tile = regionData(bitmap, rect);
+        if (!tile) continue;
+        results = await read(tile, true);
+        if (results.length) break;
+      }
     }
 
     const all = results
@@ -161,7 +204,7 @@ export async function detectBarcode(file: Blob): Promise<BarcodeResult> {
 
     if (!all.length) return { ...NO_BARCODE };
 
-    // A pack can carry several symbols (retail EAN plus an internal Code 128).
+    // A pack can carry several symbols (a retail EAN plus an internal Code 128).
     // The retail product code is the useful one, so prefer a GTIN family.
     const GTIN = new Set<BarcodeFormat>(["EAN-13", "EAN-8", "UPC-A", "UPC-E"]);
     const primary = all.find((r) => GTIN.has(r.format)) ?? all[0]!;
@@ -179,6 +222,8 @@ export async function detectBarcode(file: Blob): Promise<BarcodeResult> {
       ...NO_BARCODE,
       error: err instanceof Error ? err.message : "Barcode scanning failed.",
     };
+  } finally {
+    bitmap?.close();
   }
 }
 
