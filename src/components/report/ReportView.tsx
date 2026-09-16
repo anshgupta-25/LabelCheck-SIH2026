@@ -24,6 +24,8 @@ import {
   type RuleKey,
 } from "@/lib/compliance";
 import { cn } from "@/lib/utils";
+import { BarcodePanel } from "./BarcodePanel";
+import type { ScanBarcode } from "@/lib/barcode-report";
 
 interface Props {
   fields: FieldResult[];
@@ -34,6 +36,8 @@ interface Props {
     ((fields: FieldResult[], verdict: "compliant" | "non_compliant") => void) | undefined;
   /** Hide the correction controls (viewer is not the report owner). */
   readOnly?: boolean;
+  /** Barcode identity signal. Optional — absent on packs without one. */
+  barcode?: ScanBarcode | null;
 }
 
 export function ReportView({
@@ -43,6 +47,7 @@ export function ReportView({
   ocrQuality = 0.8,
   onFieldsChange,
   readOnly = false,
+  barcode,
 }: Props) {
   const [current, setCurrent] = useState<FieldResult[]>(() => normaliseFields(fields));
   const report = useMemo(() => finaliseReport(current, ocrQuality), [current, ocrQuality]);
@@ -136,6 +141,7 @@ export function ReportView({
                 <img src={imageUrl} alt="Scanned product label" className="w-full object-cover" />
               </div>
             )}
+            <BarcodePanel barcode={barcode} />
             <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <p className="text-sm font-semibold">Extraction quality</p>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">

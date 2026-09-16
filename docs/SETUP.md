@@ -92,7 +92,47 @@ They are **not reachable here, and not shipped**:
 Re-check after any dependency bump with
 `grep -rl "image-size\|ICNS" .output/public/assets/` — it should print nothing.
 
-## 8. Troubleshooting
+## 8. Barcode detection
+
+Every scan also looks for a barcode. It is entirely optional — a pack without
+one, or with an unreadable one, produces exactly the same Rule 6 report as
+before.
+
+**Where it runs.** In the browser, on the image the user already selected,
+started at the same moment as the OCR request. It finishes inside the 2.5-3s
+extraction already takes, so it adds no measurable time and costs no server
+resources. The decoder is `zxing-wasm` (ZXing-C++ compiled to WebAssembly,
+MIT) — no API key, no native modules, works offline.
+
+**What it is not.** A barcode is **not** one of the seven declarations
+required by Rule 6(1). Nothing in the barcode module contributes to the
+compliance verdict or the score; it is shown as a separate identity signal.
+
+**Product lookup.** `src/lib/product-lookup.ts` is a pluggable interface. The
+only source configured today is Open Food Facts (free, open data, no key).
+Coverage of Indian packaged goods is partial, so "not listed" is a normal
+outcome and never evidence that a pack is counterfeit.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `VITE_PRODUCT_LOOKUP` | `on` | Set to `off` to disable the product-database lookup. Detection and decoding continue regardless. |
+
+To add a real source later (GS1 India, an FSSAI dataset, a departmental
+registry), implement one `Source` in `product-lookup.ts` and list it ahead of
+Open Food Facts. No other file changes.
+
+**Database.** The result is stored in a nullable `barcode` jsonb column on
+`scans` (migration `20260916090000_barcode_column.sql`). Apply it with
+`supabase db push`, or paste the file into the SQL editor. Until it is
+applied, scans still work — the insert simply carries a column the table does
+not have yet, so apply it before deploying.
+
+**Tests.** `npm test` drives the real decoder against generated barcode
+images: a clear EAN-13, a rotated one, one embedded in a label photo, an image
+with no barcode, a damaged symbol, two barcodes at once, an unsupported
+pattern, and the lookup with no source configured.
+
+## 9. Troubleshooting
 
 | Symptom                                         | Fix                                                                                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -103,7 +143,7 @@ Re-check after any dependency bump with
 | `Deploy directory 'dist/client' does not exist` | Publish directory must be `dist`                                                       |
 | Build fails on Node 24                          | Use Node 22 (`.nvmrc`) or set `NODE_VERSION=22.14.0`                                   |
 
-## 9. Authentication (Supabase Auth)
+## 10. Authentication (Supabase Auth)
 
 Scanning and History require a signed-in user; report links stay public so
 QR codes and share links work for anyone. Users sign in with e-mail/password
@@ -124,7 +164,7 @@ Ownership is enforced in the database (`owner_id` on `scans`, owner-only
 insert/update/delete policies), so a user can only ever list, correct or delete
 their own inspections.
 
-## 10. E-mail (Resend)
+## 11. E-mail (Resend)
 
 The app sends two kinds of mail itself through [Resend](https://resend.com):
 a **welcome e-mail** after the first sign-in and **"E-mail report"** from a
@@ -171,7 +211,7 @@ script can also set `AUTH_SITE_URL`, `AUTH_REDIRECT_URLS`, `AUTH_AUTOCONFIRM`,
 `/reset-password`, which exchanges the code and lets the user set a new
 password. Add `https://sih.anshguptaa.in/reset-password` and
 `http://localhost:8080/reset-password` to the redirect allow-list if you use a
-strict list instead of the `/**` wildcards from section 9.
+strict list instead of the `/**` wildcards from section 10.
 
 ### Google sign-in without the Supabase domain
 

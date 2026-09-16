@@ -156,6 +156,7 @@ function ReportPage() {
         imageUrl,
         shareUrl: shareUrl(),
         ocrQuality: quality,
+        barcode: data.barcode ?? null,
       });
       toast.success("Report downloaded as a PDF.");
     } catch (e) {
@@ -298,6 +299,7 @@ function ReportPage() {
           ocrQuality={estimateOcrQuality(data.extracted_text)}
           onFieldsChange={isDemo ? undefined : persist}
           readOnly={!canEdit}
+          barcode={data.barcode ?? null}
         />
       </div>
 

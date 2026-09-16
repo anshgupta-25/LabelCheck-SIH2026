@@ -10,6 +10,7 @@ export type Database = {
     Tables: {
       scans: {
         Row: {
+          barcode: Json | null;
           created_at: string;
           extracted_text: string;
           field_results: Json;
@@ -22,6 +23,7 @@ export type Database = {
           verdict: string;
         };
         Insert: {
+          barcode?: Json | null;
           created_at?: string;
           extracted_text?: string;
           field_results?: Json;
@@ -34,6 +36,7 @@ export type Database = {
           verdict?: string;
         };
         Update: {
+          barcode?: Json | null;
           created_at?: string;
           extracted_text?: string;
           field_results?: Json;
